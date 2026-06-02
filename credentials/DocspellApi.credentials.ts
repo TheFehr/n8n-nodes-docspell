@@ -1,4 +1,3 @@
-import axios, { AxiosRequestConfig } from 'axios';
 import {
 	IAuthenticate,
 	ICredentialTestRequest,
@@ -23,14 +22,14 @@ export class DocspellApi implements ICredentialType {
 			name: 'url',
 			type: 'string',
 			default: '',
-			required: true
+			required: true,
 		},
 		{
-			displayName: 'Account name',
+			displayName: 'Account Name',
 			name: 'account',
 			type: 'string',
 			default: '',
-			required: true
+			required: true,
 		},
 		{
 			displayName: 'Password',
@@ -40,53 +39,47 @@ export class DocspellApi implements ICredentialType {
 				password: true,
 			},
 			default: '',
-			required: true
-		}
+			required: true,
+		},
 	];
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials?.url}}/api/v1',
-			url: '/open/auth/login',
+			baseURL: '={{$credentials?.url?.replace(/\\/$/, \'\')}}',
+			url: '/api/v1/open/auth/login',
 			method: 'POST',
 			body: {
 				account: '={{$credentials?.account}}',
-				password: '={{$credentials?.password}}'
-			}
+				password: '={{$credentials?.password}}',
+			},
 		},
 		rules: [
 			{
 				type: 'responseSuccessBody',
 				properties: {
-					message: 'Login wasn\'t successful',
+					message: "Login wasn't successful",
 					key: 'success',
-					value: false
-				}
-			}
-		]
-	}
+					value: false,
+				},
+			},
+		],
+	};
 
 	authenticate: IAuthenticate = async (rawCredentials, requestOptions): Promise<IHttpRequestOptions> => {
 		const creds = rawCredentials as unknown as Credentials;
+		const baseUrl = creds.url.replace(/\/$/, '');
 
-		const axiosRequestConfig: AxiosRequestConfig = {
-			headers: {
-				'Content-Type': 'application/json',
-			},
+		const response = await fetch(`${baseUrl}/api/v1/open/auth/login`, {
 			method: 'POST',
-			data: {
-				account: creds.account,
-				password: creds.password
-			},
-			url: `${creds.url}/api/v1/open/auth/login`,
-		};
-		const result = await axios(axiosRequestConfig);
-		const {token} = result.data;
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ account: creds.account, password: creds.password }),
+		});
+		const { token } = await response.json() as { token: string };
 
 		requestOptions.headers = {
 			...requestOptions.headers,
 			'X-Docspell-Auth': token,
-		}
+		};
 
 		return requestOptions;
 	};

@@ -1,6 +1,5 @@
 import {INodeType, INodeTypeDescription} from 'n8n-workflow';
 
-import 'cross-fetch/polyfill';
 import * as doc from './openapi.json';
 import { N8NPropertiesBuilder, N8NPropertiesBuilderConfig } from '@devlikeapro/n8n-openapi-node';
 
