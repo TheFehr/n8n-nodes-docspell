@@ -1,12 +1,12 @@
 {
   "name": "n8n-nodes-docspell",
-  "version": "0.1.0",
+  "version": "0.43.0",
   "description": "Interact with your Docspell instance",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/TheFehr/n8n-nodes-docspell#readme",
   "author": {
     "name": "Philipp Fehr",
     "email": "philipp@thefehr.me"
@@ -29,7 +29,8 @@
     "test:pipeline": "bash scripts/full-test.sh",
     "test:up": "docker compose -f docker-compose.test.yml up -d",
     "test:down": "docker compose -f docker-compose.test.yml down",
-    "prepublishOnly": "n8n-node prerelease"
+    "prepublishOnly": "n8n-node prerelease",
+    "release": "n8n-node release"
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
@@ -47,6 +48,40 @@
     "vitest": "^5.0.5"
   },
   "peerDependencies": {
-    "n8n-workflow": "^2.23.0"
+    "n8n-workflow": "*"
+  },
+  "docspellVersion": "0.43.0",
+  "n8nWorkflowVersion": "2.45.1",
+  "n8nNodeTooling": {
+    "upstream": {
+      "name": "Docspell",
+      "source": {
+        "type": "github",
+        "repo": "eikek/docspell"
+      },
+      "track": {
+        "type": "field",
+        "name": "docspellVersion"
+      },
+      "majorOffset": 0
+    },
+    "readme": "Last tested with n8n {n8n} and Docspell {upstream}.",
+    "pins": [
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/restserver:v{version}",
+        "from": "upstream"
+      },
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/joex:v{version}",
+        "from": "upstream"
+      },
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: n8nio/n8n:{version}",
+        "from": "n8n"
+      }
+    ]
   }
 }
