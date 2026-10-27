@@ -1,11 +1,13 @@
-import {INodeType, INodeTypeDescription} from 'n8n-workflow';
+import type {
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+} from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
-import * as doc from './openapi.json';
-import { N8NPropertiesBuilder, N8NPropertiesBuilderConfig } from '@devlikeapro/n8n-openapi-node';
-
-const config: N8NPropertiesBuilderConfig = {}
-const parser = new N8NPropertiesBuilder(doc, config);
-const properties = parser.build()
+import { itemDescription } from './resources/item';
+import { executeItemSearch } from './resources/item/search';
 
 export class Docspell implements INodeType {
 	description: INodeTypeDescription = {
@@ -14,22 +16,56 @@ export class Docspell implements INodeType {
 		icon: 'file:docspell.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["operation"] + " " + $parameter["resource"]}}',
-		description: 'Consume Docspell API',
+		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
+		description: 'Work with the documents in your Docspell instance',
 		defaults: {
 			name: 'Docspell',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'docspellApi',
 				required: true,
 			},
 		],
-		requestDefaults: {
-			baseURL: '={{$credentials.url}}/api/v1'
-		},
-		properties: properties
+		properties: [
+			{
+				displayName: 'Resource',
+				name: 'resource',
+				type: 'options',
+				noDataExpression: true,
+				options: [{ name: 'Item', value: 'item' }],
+				default: 'item',
+			},
+			...itemDescription,
+		],
 	};
+
+	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		const inputItems = this.getInputData();
+		const returnData: INodeExecutionData[] = [];
+
+		for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex++) {
+			try {
+				const resource = this.getNodeParameter('resource', itemIndex) as string;
+				const operation = this.getNodeParameter('operation', itemIndex) as string;
+
+				if (resource === 'item' && operation === 'search') {
+					returnData.push(...(await executeItemSearch(this, itemIndex)));
+				}
+			} catch (error) {
+				if (this.continueOnFail()) {
+					returnData.push({
+						json: { error: (error as Error).message },
+						pairedItem: { item: itemIndex },
+					});
+					continue;
+				}
+				throw error;
+			}
+		}
+
+		return [returnData];
+	}
 }

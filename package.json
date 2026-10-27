@@ -26,6 +26,7 @@
     "lint:fix": "oxlint --fix",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:pipeline": "bash scripts/full-test.sh",
     "test:up": "docker compose -f docker-compose.test.yml up -d",
     "test:down": "docker compose -f docker-compose.test.yml down",
     "prepublishOnly": "n8n-node prerelease"
@@ -47,8 +48,5 @@
   },
   "peerDependencies": {
     "n8n-workflow": "^2.23.0"
-  },
-  "dependencies": {
-    "@devlikeapro/n8n-openapi-node": "^0.1.4"
   }
 }

@@ -1,0 +1,132 @@
+{
+  "id": "1",
+  "name": "Docspell Item Search",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "tag:e2e-invoice",
+        "returnAll": true
+      },
+      "id": "s1",
+      "name": "Search invoices",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const names = $input.all().map((item) => item.json.name).sort();\nconst expected = ['invoice-alpha.txt', 'invoice-beta.txt'];\nif (JSON.stringify(names) !== JSON.stringify(expected)) {\n  throw new Error('Unexpected invoice search result: ' + JSON.stringify(names));\n}\nreturn [{ json: { verified: 'invoices', names } }];"
+      },
+      "id": "a1",
+      "name": "Assert invoices",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:contract*",
+        "returnAll": true,
+        "options": {
+          "withDetails": true
+        }
+      },
+      "id": "s2",
+      "name": "Search contract with details",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        300
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1 || items[0].json.name !== 'contract-gamma.txt') {\n  throw new Error('Unexpected contract search result: ' + JSON.stringify(items.map((item) => item.json.name)));\n}\nconst tags = items[0].json.tags.map((tag) => tag.name);\nif (JSON.stringify(tags) !== JSON.stringify(['e2e-contract'])) {\n  throw new Error('Include Details did not resolve the tags: ' + JSON.stringify(tags));\n}\nreturn [{ json: { verified: 'contract with details', tags } }];"
+      },
+      "id": "a2",
+      "name": "Assert contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Search invoices",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search contract with details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search invoices": {
+      "main": [
+        [
+          {
+            "node": "Assert invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search contract with details": {
+      "main": [
+        [
+          {
+            "node": "Assert contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

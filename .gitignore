@@ -9,3 +9,8 @@ yarn.lock
 
 .idea
 .tool-versions
+
+# Output of scripts/full-test.sh
+workflow_output.txt
+bad_query_output.txt
+bad_credentials_output.txt

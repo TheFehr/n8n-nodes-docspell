@@ -18,15 +18,19 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 ## Operations
 
-All operations are listed, only a handful are fully tested.
+**Item**
+
+- **Search**: find items with Docspell's [query language](https://docspell.org/docs/query/). Returns one n8n item per Docspell item. Supports *Return All*, a limit, an offset, searching the trash, and *Include Details* to also resolve tags and attachments.
+
+More operations are planned.
 
 ## Credentials
 
-Use your full account name collection/username.
+Use the URL of your Docspell instance, your full account name (`collective/username`) and your password. Accounts with two-factor authentication are not supported. The node logs in once and reuses the session until shortly before it expires.
 
 ## Compatibility
 
-This was developed for version 1.99.0 of n8n and version 0.43.0 of Docspell.
+Last tested with n8n 2.45.4 and Docspell 0.43.0.
 
 ## Resources
 
