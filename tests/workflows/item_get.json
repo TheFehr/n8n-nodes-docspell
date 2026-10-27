@@ -1,0 +1,110 @@
+{
+  "id": "4",
+  "name": "Docspell Item Get",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:invoice-beta.txt",
+        "returnAll": true
+      },
+      "id": "s",
+      "name": "Find invoice",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "itemId": "={{ $json.id }}"
+      },
+      "id": "g",
+      "name": "Get the found item",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        540,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1) throw new Error('Expected one item, got ' + items.length);\nconst item = items[0].json;\nconst found = $('Find invoice').first().json.id;\nif (item.id !== found) throw new Error('Get returned a different item: ' + item.id + ' vs ' + found);\nif (item.name !== 'invoice-beta.txt') throw new Error('Unexpected name: ' + item.name);\nconst tags = item.tags.map((tag) => tag.name);\nif (JSON.stringify(tags) !== JSON.stringify(['e2e-invoice'])) throw new Error('Unexpected tags: ' + JSON.stringify(tags));\nif (!item.attachments || item.attachments.length !== 1) throw new Error('Expected one attachment: ' + JSON.stringify(item.attachments));\nreturn [{ json: { verified: 'item detail', id: item.id } }];"
+      },
+      "id": "a",
+      "name": "Assert detail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find invoice": {
+      "main": [
+        [
+          {
+            "node": "Get the found item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get the found item": {
+      "main": [
+        [
+          {
+            "node": "Assert detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

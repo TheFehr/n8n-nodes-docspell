@@ -10,7 +10,7 @@ if command -v fnm &>/dev/null; then
 fi
 
 COMPOSE="docker compose -f docker-compose.test.yml"
-OUTPUT_FILES="workflow_output.txt bad_query_output.txt bad_credentials_output.txt"
+OUTPUT_FILES="workflow_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
 
 on_exit() {
 	EXIT_CODE=$?
@@ -61,6 +61,8 @@ run_in_n8n "
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_search.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_search_bad_query.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_search_bad_credentials.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_get.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_get_not_found.json && \
   n8n execute --id=1
 " > workflow_output.txt 2>&1 || {
 	echo "❌ The Item Search workflow did not run to completion"
@@ -71,6 +73,17 @@ if ! grep -q '"status": *"success"' workflow_output.txt; then
 	exit 1
 fi
 echo "✅ Item Search workflow succeeded (its Code nodes assert the exact results)"
+
+# Imported workflows live in the n8n_data volume, shared with the one-off containers.
+run_in_n8n "n8n execute --id=4" > get_output.txt 2>&1 || {
+	echo "❌ The Item Get workflow did not run to completion"
+	exit 1
+}
+if ! grep -q '"status": *"success"' get_output.txt; then
+	echo "❌ The Item Get workflow did not finish with status success"
+	exit 1
+fi
+echo "✅ Item Get workflow succeeded (Search -> Get chained through an expression)"
 
 # n8n aborts a workflow on the first node error, so failures run in their own process.
 expect_failure() {
@@ -87,6 +100,7 @@ expect_failure() {
 
 expect_failure 2 "Unparseable query" bad_query_output.txt "search query"
 expect_failure 3 "Wrong password" bad_credentials_output.txt "login failed"
+expect_failure 5 "Unknown item id" not_found_output.txt "was not found"
 
 echo "Running the vitest suite..."
 npm run test:run

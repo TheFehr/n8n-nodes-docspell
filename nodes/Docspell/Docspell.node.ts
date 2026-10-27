@@ -4,9 +4,10 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { itemDescription } from './resources/item';
+import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
 
 export class Docspell implements INodeType {
@@ -51,8 +52,12 @@ export class Docspell implements INodeType {
 				const resource = this.getNodeParameter('resource', itemIndex) as string;
 				const operation = this.getNodeParameter('operation', itemIndex) as string;
 
-				if (resource === 'item' && operation === 'search') {
+				if (resource === 'item' && operation === 'get') {
+					returnData.push(...(await executeItemGet(this, itemIndex)));
+				} else if (resource === 'item' && operation === 'search') {
 					returnData.push(...(await executeItemSearch(this, itemIndex)));
+				} else {
+					throw new NodeOperationError(this.getNode(), `Unsupported operation: ${resource}/${operation}`, { itemIndex });
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {

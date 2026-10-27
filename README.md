@@ -20,6 +20,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 **Item**
 
+- **Get**: fetch the full detail of one item by its ID (tags, attachments, notes, custom fields, correspondents). Chain it after Search with `{{ $json.id }}`.
 - **Search**: find items with Docspell's [query language](https://docspell.org/docs/query/). Returns one n8n item per Docspell item. Supports *Return All*, a limit, an offset, searching the trash, and *Include Details* to also resolve tags and attachments.
 
 More operations are planned.
