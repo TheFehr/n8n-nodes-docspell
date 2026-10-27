@@ -24,6 +24,10 @@
     "dev": "n8n-node dev",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:up": "docker compose -f docker-compose.test.yml up -d",
+    "test:down": "docker compose -f docker-compose.test.yml down",
     "prepublishOnly": "n8n-node prerelease"
   },
   "n8n": {
@@ -38,7 +42,8 @@
   "devDependencies": {
     "@n8n/node-cli": "^0.32.1",
     "oxlint": "^1.68.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "n8n-workflow": "^2.23.0"

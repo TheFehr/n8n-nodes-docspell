@@ -1,0 +1,12 @@
+services:
+  restserver:
+    image: ghcr.io/docspell/restserver:v0.43.0
+    ports:
+      - "7880:7880"
+    environment:
+      DOCSPELL_SERVER_APP__ID: rest1
+      DOCSPELL_SERVER_BIND_ADDRESS: 0.0.0.0
+      DOCSPELL_SERVER_INTERNAL__URL: http://restserver:7880
+      DOCSPELL_SERVER_BACKEND_SIGNUP_MODE: open
+      DOCSPELL_SERVER_AUTH_SERVER__SECRET: hex:caffee0123456789caffee0123456789caffee0123456789caffee0123456789
+      DOCSPELL_SERVER_FULL__TEXT__SEARCH_ENABLED: "false"

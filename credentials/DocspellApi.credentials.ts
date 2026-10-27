@@ -6,11 +6,7 @@ import {
 	INodeProperties,
 } from 'n8n-workflow';
 
-interface Credentials {
-	url: string;
-	account: string;
-	password: string;
-}
+import { DocspellLoginCredentials, getSessionToken } from './DocspellSession';
 
 export class DocspellApi implements ICredentialType {
 	name = 'docspellApi';
@@ -66,21 +62,11 @@ export class DocspellApi implements ICredentialType {
 	};
 
 	authenticate: IAuthenticate = async (rawCredentials, requestOptions): Promise<IHttpRequestOptions> => {
-		const creds = rawCredentials as unknown as Credentials;
-		const baseUrl = creds.url.replace(/\/$/, '');
+		const token = await getSessionToken(rawCredentials as unknown as DocspellLoginCredentials);
 
-		const response = await fetch(`${baseUrl}/api/v1/open/auth/login`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ account: creds.account, password: creds.password }),
-		});
-		const { token } = await response.json() as { token: string };
-
-		requestOptions.headers = {
-			...requestOptions.headers,
-			'X-Docspell-Auth': token,
+		return {
+			...requestOptions,
+			headers: { ...requestOptions.headers, 'X-Docspell-Auth': token },
 		};
-
-		return requestOptions;
 	};
 }
