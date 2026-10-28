@@ -3,13 +3,19 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { Docspell } from '../nodes/Docspell/Docspell.node';
 import { docspell, getItem, itemIdByName, referenceId } from './docspellApi';
-import { createExecuteContext } from './fakeExecuteContext';
+import { createExecuteContext, type RecordedRequest } from './fakeExecuteContext';
 import { SEED_CUSTOM_FIELD, SEED_FOLDER, SEED_ORGANIZATION, SEED_PERSON, SEED_EQUIPMENT, UPDATE_TARGET } from './helpers';
 
 const node = new Docspell();
 
-async function update(itemId: string, updateFields: IDataObject, extra: IDataObject = {}) {
+async function update(
+	itemId: string,
+	updateFields: IDataObject,
+	extra: IDataObject = {},
+	failWhen?: (request: RecordedRequest) => boolean,
+) {
 	const { context, requests } = createExecuteContext({
+		failWhen,
 		parameters: { resource: 'item', operation: 'update', itemId, updateFields, ...extra },
 	});
 	const [items] = await node.execute!.call(context);
@@ -222,6 +228,54 @@ describe('Item > Update against a real Docspell', () => {
 				/folder.*already applied.*name/is,
 			);
 			expect((await getItem(id)).name).toBe('renamed-by-test.txt');
+		});
+
+		it.each(['2026-02-30', '2026-04-31', '2026-02-30T10:00:00Z', '2026-13-01'])(
+			'rejects the impossible date %s before changing anything',
+			async (date) => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				const { context, requests } = createExecuteContext({
+					parameters: { resource: 'item', operation: 'update', itemId: id, updateFields: { name: 'x.txt', itemDate: date } },
+				});
+
+				await expect(node.execute!.call(context)).rejects.toThrow(/not a valid date/i);
+				expect(requests).toEqual([]);
+			},
+		);
+
+		it('accepts the last day of a leap-year February', async () => {
+			const id = await itemIdByName(UPDATE_TARGET);
+			const { items } = await update(id, { dueDate: '2028-02-29' });
+			expect(new Date(items[0].json.dueDate as number).toISOString()).toMatch(/^2028-02-29/);
+		});
+
+		it('lists the applied changes when a later request fails with an HTTP error', async () => {
+			const id = await itemIdByName(UPDATE_TARGET);
+			// The Add mode reads the current tags first; that read fails after the name was changed.
+			const error = await update(id, { name: 'renamed-by-test.txt', tags: 'e2e-invoice', tagsMode: 'add' }, {}, (request) =>
+				request.method === 'GET' && request.url.endsWith(`/sec/item/${id}`),
+			).catch((caught) => caught);
+
+			expect(error.httpCode).toBe('503');
+			expect(`${error.message} ${error.description}`).toMatch(/already applied: name/);
+			expect((await getItem(id)).name).toBe('renamed-by-test.txt');
+		});
+
+		it('lists the applied changes when the final read of the item fails', async () => {
+			const id = await itemIdByName(UPDATE_TARGET);
+			const error = await update(id, { notes: 'applied before the read' }, {}, (request) =>
+				request.method === 'GET' && request.url.endsWith(`/sec/item/${id}`),
+			).catch((caught) => caught);
+
+			expect(error.httpCode).toBe('503');
+			expect(`${error.message} ${error.description}`).toMatch(/already applied: notes/);
+		});
+
+		it('does not repeat the applied list on an error that already carries it', async () => {
+			const id = await itemIdByName(UPDATE_TARGET);
+			const error = await update(id, { name: 'renamed-by-test.txt', folder: 'no-such-folder' }).catch((caught) => caught);
+
+			expect(`${error.message} ${error.description ?? ''}`.match(/already applied/g)).toHaveLength(1);
 		});
 
 		it('keeps going after a failure when Continue On Fail is set', async () => {

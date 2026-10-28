@@ -16,6 +16,8 @@ interface Options {
 	inputItems?: INodeExecutionData[];
 	credentials?: Partial<ICredentialDataDecryptedObject>;
 	continueOnFail?: boolean;
+	// Fails matching requests with an HTTP error before they reach Docspell.
+	failWhen?: (request: RecordedRequest) => boolean;
 }
 
 export interface RecordedRequest {
@@ -50,7 +52,14 @@ export function createExecuteContext(options: Options) {
 			? `?${new URLSearchParams(authenticated.qs as Record<string, string>)}`
 			: '';
 		const url = `${base}${authenticated.url}${query}`;
-		requests.push({ method: authenticated.method, url, body: authenticated.body });
+		const recorded = { method: authenticated.method, url, body: authenticated.body };
+		requests.push(recorded);
+		if (options.failWhen?.(recorded)) {
+			throw Object.assign(new Error('Request failed with status code 503'), {
+				httpCode: '503',
+				response: { status: 503, data: 'unavailable' },
+			});
+		}
 
 		const response = await fetch(url, {
 			method: authenticated.method ?? 'GET',

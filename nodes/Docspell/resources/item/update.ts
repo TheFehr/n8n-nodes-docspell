@@ -1,5 +1,5 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import { docspellApiRequest } from '../../../Common/GenericFunctions';
 
@@ -137,8 +137,18 @@ export async function executeItemUpdate(
 	if ('name' in fields && String(fields.name).trim() === '') throw fail('The name cannot be empty');
 	const dateBody = (label: string, value: unknown): IDataObject => {
 		if (value === '' || value === undefined || value === null) return { date: null };
-		const time = new Date(value as string).getTime();
-		if (Number.isNaN(time)) throw fail(`${label} "${String(value)}" is not a valid date`);
+		const text = String(value);
+		const time = new Date(text).getTime();
+		if (Number.isNaN(time)) throw fail(`${label} "${text}" is not a valid date`);
+		// Date rolls a day that does not exist (February 30) over into the next month.
+		const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(text.trim());
+		if (day) {
+			const [year, month, date] = day.slice(1).map(Number);
+			const check = new Date(Date.UTC(year, month - 1, date));
+			if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== date) {
+				throw fail(`${label} "${text}" is not a valid date`);
+			}
+		}
 		return { date: time };
 	};
 	const itemDate = 'itemDate' in fields ? dateBody('Item Date', fields.itemDate) : undefined;
@@ -153,6 +163,19 @@ export async function executeItemUpdate(
 			throw fail(`Could not update the ${label}: ${reason}${done}`);
 		}
 		applied.push(label);
+	};
+
+	// An error after the first change still has to say what was already changed.
+	const withApplied = (error: unknown): never => {
+		if (applied.length === 0) throw error;
+		const note = `already applied: ${applied.join(', ')}`;
+		if (error instanceof NodeApiError || error instanceof NodeOperationError) {
+			if (!`${error.message} ${error.description ?? ''}`.includes('already applied')) {
+				error.description = error.description ? `${error.description} (${note})` : note;
+			}
+			throw error;
+		}
+		throw fail(`${error instanceof Error ? error.message : String(error)} (${note})`);
 	};
 
 	const steps: Step[] = [];
@@ -216,9 +239,13 @@ export async function executeItemUpdate(
 		steps.push({ label, run: () => put(label, 'PUT', '/customfield', { field: field.trim(), value }) });
 	}
 
-	for (const step of steps) await step.run();
-
-	const item = await docspellApiRequest(context, { method: 'GET', endpoint: itemPath }, { 404: `Item "${itemId}" was not found` });
+	let item: IDataObject;
+	try {
+		for (const step of steps) await step.run();
+		item = await docspellApiRequest(context, { method: 'GET', endpoint: itemPath }, { 404: `Item "${itemId}" was not found` });
+	} catch (error) {
+		return withApplied(error);
+	}
 	return context.helpers.constructExecutionMetaData(context.helpers.returnJsonArray(item), {
 		itemData: { item: itemIndex },
 	});
