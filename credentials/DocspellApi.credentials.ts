@@ -1,5 +1,6 @@
 import {
 	IAuthenticate,
+	IconFile,
 	ICredentialTestRequest,
 	ICredentialType,
 	IHttpRequestOptions,
@@ -11,6 +12,7 @@ import { DocspellLoginCredentials, getSessionToken } from './DocspellSession';
 export class DocspellApi implements ICredentialType {
 	name = 'docspellApi';
 	displayName = 'Docspell API';
+	icon = 'file:docspell.svg' as IconFile;
 	documentationUrl = 'https://docspell.org/docs/api/intro/#authentication';
 	properties: INodeProperties[] = [
 		{

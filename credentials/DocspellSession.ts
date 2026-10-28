@@ -54,6 +54,7 @@ async function login(credentials: DocspellLoginCredentials): Promise<CachedSessi
 	} catch (error) {
 		const cause = (error as { cause?: { code?: string; message?: string } }).cause;
 		const reason = cause?.code ?? cause?.message ?? (error as Error).message;
+		// eslint-disable-next-line @n8n/community-nodes/require-node-api-error -- credential code has no node to attach; n8n wraps what authenticate throws
 		throw new Error(`Could not reach Docspell at ${url}: ${reason}`);
 	}
 
@@ -65,6 +66,7 @@ async function login(credentials: DocspellLoginCredentials): Promise<CachedSessi
 	try {
 		body = (await response.json()) as LoginResponse;
 	} catch {
+		// eslint-disable-next-line @n8n/community-nodes/require-node-api-error -- credential code has no node to attach; n8n wraps what authenticate throws
 		throw new Error(`Docspell login at ${url} returned a response that is not JSON`);
 	}
 

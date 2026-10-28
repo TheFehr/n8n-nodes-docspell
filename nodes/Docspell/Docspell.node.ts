@@ -4,7 +4,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
@@ -19,6 +19,7 @@ export class Docspell implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Work with the documents in your Docspell instance',
+		usableAsTool: true,
 		defaults: {
 			name: 'Docspell',
 		},
@@ -67,7 +68,12 @@ export class Docspell implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				if (error instanceof NodeApiError || error instanceof NodeOperationError) {
+					// Already a node error: rewrapping it would lose the HTTP status.
+					// eslint-disable-next-line @n8n/community-nodes/require-node-api-error
+					throw error;
+				}
+				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex });
 			}
 		}
 
