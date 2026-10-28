@@ -19,7 +19,8 @@ on_exit() {
 		for f in $OUTPUT_FILES; do
 			if [ -f "$f" ]; then
 				echo "--- $f (without sourcemap noise) ---"
-				grep -v "Sourcemap" "$f" | tail -30
+				# grep exits 1 on an empty file; that must not stop the cleanup below.
+				grep -v "Sourcemap" "$f" | tail -30 || true
 			fi
 		done
 		echo "--- restserver logs (tail) ---"
@@ -72,6 +73,19 @@ if ! grep -q '"status": *"success"' workflow_output.txt; then
 	echo "❌ The Item Search workflow did not finish with status success"
 	exit 1
 fi
+# n8n skips a Code node whose input is empty and still reports success, so the
+# assertions must have left their marker in the output.
+require_markers() {
+	local file=$1 label=$2; shift 2
+	for marker in "$@"; do
+		if ! grep -q "\"verified\": *\"$marker\"" "$file"; then
+			echo "❌ $label: the assertion \"$marker\" never ran (an empty result skips it)"
+			exit 1
+		fi
+	done
+}
+
+require_markers workflow_output.txt "Item Search workflow" "invoices" "contract with details"
 echo "✅ Item Search workflow succeeded (its Code nodes assert the exact results)"
 
 # Imported workflows live in the n8n_data volume, shared with the one-off containers.
@@ -83,6 +97,7 @@ if ! grep -q '"status": *"success"' get_output.txt; then
 	echo "❌ The Item Get workflow did not finish with status success"
 	exit 1
 fi
+require_markers get_output.txt "Item Get workflow" "item detail"
 echo "✅ Item Get workflow succeeded (Search -> Get chained through an expression)"
 
 # n8n aborts a workflow on the first node error, so failures run in their own process.

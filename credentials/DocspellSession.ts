@@ -23,6 +23,10 @@ interface CachedSession {
 // early so a request never goes out with a token that expires in flight.
 const EXPIRY_MARGIN_MS = 30_000;
 
+// fetch has no timeout of its own beyond Node's 300 s, and every caller waiting on the
+// same login would wait that long with it.
+const LOGIN_TIMEOUT_MS = 30_000;
+
 // Why a per-process cache instead of n8n's `preAuthentication` + expirable token:
 // n8n only re-authenticates after a 401, but Docspell answers an expired or invalid
 // token with 403, so a stored token would stay stale until it was cleared by hand.
@@ -41,7 +45,7 @@ function cacheKey({ url, account, password }: DocspellLoginCredentials): string 
 		.digest('hex');
 }
 
-async function login(credentials: DocspellLoginCredentials): Promise<CachedSession> {
+async function login(credentials: DocspellLoginCredentials, timeoutMs: number): Promise<CachedSession> {
 	const url = baseUrl(credentials.url);
 
 	let response: Response;
@@ -50,6 +54,7 @@ async function login(credentials: DocspellLoginCredentials): Promise<CachedSessi
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ account: credentials.account, password: credentials.password }),
+			signal: AbortSignal.timeout(timeoutMs),
 		});
 	} catch (error) {
 		const cause = (error as { cause?: { code?: string; message?: string } }).cause;
@@ -91,7 +96,10 @@ async function login(credentials: DocspellLoginCredentials): Promise<CachedSessi
 	};
 }
 
-export async function getSessionToken(credentials: DocspellLoginCredentials): Promise<string> {
+export async function getSessionToken(
+	credentials: DocspellLoginCredentials,
+	timeoutMs = LOGIN_TIMEOUT_MS,
+): Promise<string> {
 	const key = cacheKey(credentials);
 
 	const cached = sessions.get(key);
@@ -101,7 +109,7 @@ export async function getSessionToken(credentials: DocspellLoginCredentials): Pr
 	const running = logins.get(key);
 	if (running) return running;
 
-	const attempt = login(credentials)
+	const attempt = login(credentials, timeoutMs)
 		.then((session) => {
 			sessions.set(key, session);
 			return session.token;
