@@ -22,8 +22,10 @@
     "build": "n8n-node build",
     "build:watch": "tsc --watch",
     "dev": "n8n-node dev",
-    "lint": "n8n-node lint",
-    "lint:fix": "n8n-node lint --fix",
+    "lint": "npm run lint:n8n && npm run lint:oxlint",
+    "lint:n8n": "n8n-node lint",
+    "lint:oxlint": "oxlint",
+    "lint:fix": "n8n-node lint --fix && oxlint --fix",
     "test": "vitest",
     "test:run": "vitest run",
     "test:pipeline": "bash scripts/full-test.sh",
@@ -43,6 +45,7 @@
   },
   "devDependencies": {
     "@n8n/node-cli": "^0.32.1",
+    "oxlint": "^1.68.0",
     "typescript": "~5.9.3",
     "vitest": "^5.0.5"
   },
