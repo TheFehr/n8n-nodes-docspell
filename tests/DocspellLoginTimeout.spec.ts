@@ -8,12 +8,19 @@ import { getSessionToken, resetSessionCache } from '../credentials/DocspellSessi
 let server: Server;
 let requestsReceived: number;
 let url: string;
+// What the stalled server does with a request: nothing, or headers and then silence.
+let sendHeaders = false;
 
 beforeEach(async () => {
 	resetSessionCache();
 	requestsReceived = 0;
-	server = createServer(() => {
+	sendHeaders = false;
+	server = createServer((_request, response) => {
 		requestsReceived++;
+		if (sendHeaders) {
+			response.writeHead(200, { 'Content-Type': 'application/json' });
+			response.write('{"success":');
+		}
 	});
 	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
 	url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -43,5 +50,11 @@ describe('login against a server that never answers', () => {
 
 		await expect(getSessionToken(credentials(), 300)).rejects.toThrow(/could not reach docspell/i);
 		expect(requestsReceived).toBe(2);
+	});
+
+	it('reports a body that stalls after the headers as a timeout, not as invalid JSON', async () => {
+		sendHeaders = true;
+
+		await expect(getSessionToken(credentials(), 300)).rejects.toThrow(/could not reach docspell.*time/i);
 	});
 });

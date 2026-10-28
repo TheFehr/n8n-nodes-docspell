@@ -45,6 +45,14 @@ function cacheKey({ url, account, password }: DocspellLoginCredentials): string 
 		.digest('hex');
 }
 
+// The timeout signal stays active while the body is read, so a stall there is reported
+// the same way as a stall before the headers.
+function unreachable(url: string, error: unknown): Error {
+	const cause = (error as { cause?: { code?: string; message?: string } }).cause;
+	const reason = cause?.code ?? cause?.message ?? (error as Error).message;
+	return new Error(`Could not reach Docspell at ${url}: ${reason}`);
+}
+
 async function login(credentials: DocspellLoginCredentials, timeoutMs: number): Promise<CachedSession> {
 	const url = baseUrl(credentials.url);
 
@@ -57,19 +65,23 @@ async function login(credentials: DocspellLoginCredentials, timeoutMs: number): 
 			signal: AbortSignal.timeout(timeoutMs),
 		});
 	} catch (error) {
-		const cause = (error as { cause?: { code?: string; message?: string } }).cause;
-		const reason = cause?.code ?? cause?.message ?? (error as Error).message;
-		// eslint-disable-next-line @n8n/community-nodes/require-node-api-error -- credential code has no node to attach; n8n wraps what authenticate throws
-		throw new Error(`Could not reach Docspell at ${url}: ${reason}`);
+		throw unreachable(url, error);
 	}
 
 	if (!response.ok) {
 		throw new Error(`Docspell login at ${url} failed with HTTP ${response.status}`);
 	}
 
+	let text: string;
+	try {
+		text = await response.text();
+	} catch (error) {
+		throw unreachable(url, error);
+	}
+
 	let body: LoginResponse;
 	try {
-		body = (await response.json()) as LoginResponse;
+		body = JSON.parse(text) as LoginResponse;
 	} catch {
 		// eslint-disable-next-line @n8n/community-nodes/require-node-api-error -- credential code has no node to attach; n8n wraps what authenticate throws
 		throw new Error(`Docspell login at ${url} returned a response that is not JSON`);
