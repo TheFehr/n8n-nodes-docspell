@@ -49,7 +49,7 @@ services:
   # Not started by `test:up`: scripts/full-test.sh runs it as one-off processes, because
   # `n8n execute` cannot share a container with a running n8n server.
   n8n:
-    image: n8nio/n8n:2.45.4
+    image: n8nio/n8n:2.45.5
     ports:
       - "5678:5678"
     environment:
