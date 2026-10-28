@@ -21,6 +21,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 **Item**
 
 - **Get**: fetch the full detail of one item by its ID (tags, attachments, notes, custom fields, correspondents). Chain it after Search with `{{ $json.id }}`.
+- **Update**: change an item's name, notes, direction, item date, due date, folder, correspondent organization and person, concerning person and equipment, tags and custom fields. Only the fields you add are touched, and an empty value removes the current one where that makes sense. Tags can be replaced, added to or removed, by name or ID, and a tag that does not exist is an error instead of being ignored. Organization, person and equipment are given by ID for now. The updated item is returned. If a change fails part-way, the error lists what was already applied.
 - **Search**: find items with Docspell's [query language](https://docspell.org/docs/query/). Returns one n8n item per Docspell item. Supports *Return All*, a limit, an offset, searching the trash, and *Include Details* to also resolve tags and attachments.
 
 More operations are planned.

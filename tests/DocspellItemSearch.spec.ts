@@ -97,12 +97,14 @@ describe('Item > Search with Return All', () => {
 	it('pages until every item is fetched', async () => {
 		const { context, requests } = createExecuteContext({ parameters: {} });
 
-		const items = await searchAllPages(context, { query: '' }, 2);
+		const pageSize = ALL_NAMES.length - 1;
+
+		const items = await searchAllPages(context, { query: '' }, pageSize);
 
 		expect(items.map((item) => item.name).sort()).toEqual(ALL_NAMES);
-		// 3 items at 2 per page: a full page, then a short one that ends the loop.
+		// One item short of everything per page: a full page, then a short one that ends the loop.
 		expect(requests).toHaveLength(2);
-		expect(requests.map((request) => (request.body as IDataObject).offset)).toEqual([0, 2]);
+		expect(requests.map((request) => (request.body as IDataObject).offset)).toEqual([0, pageSize]);
 	});
 
 	it('is what the node uses when Return All is on', async () => {
@@ -114,9 +116,9 @@ describe('Item > Search with Return All', () => {
 	it('stops when the last page is exactly full', async () => {
 		const { context, requests } = createExecuteContext({ parameters: {} });
 
-		const items = await searchAllPages(context, { query: '' }, 3);
+		const items = await searchAllPages(context, { query: '' }, ALL_NAMES.length);
 
-		expect(items).toHaveLength(3);
+		expect(items).toHaveLength(ALL_NAMES.length);
 		// The next page is empty, which is what proves there is nothing left.
 		expect(requests).toHaveLength(2);
 	});
