@@ -1,12 +1,12 @@
 {
   "name": "n8n-nodes-docspell",
-  "version": "0.1.0",
+  "version": "0.43.0",
   "description": "Interact with your Docspell instance",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/TheFehr/n8n-nodes-docspell#readme",
   "author": {
     "name": "Philipp Fehr",
     "email": "philipp@thefehr.me"
@@ -15,18 +15,25 @@
     "type": "git",
     "url": "https://github.com/TheFehr/n8n-nodes-docspell.git"
   },
-  "main": "index.js",
-  "scripts": {
-    "build": "tsc && gulp build:icons",
-    "dev": "tsc --watch",
-    "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials package.json",
-    "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
-  },
   "files": [
     "dist"
   ],
+  "scripts": {
+    "build": "n8n-node build",
+    "build:watch": "tsc --watch",
+    "dev": "n8n-node dev",
+    "lint": "npm run lint:n8n && npm run lint:oxlint",
+    "lint:n8n": "n8n-node lint",
+    "lint:oxlint": "oxlint",
+    "lint:fix": "n8n-node lint --fix && oxlint --fix",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:pipeline": "bash scripts/full-test.sh",
+    "test:up": "docker compose -f docker-compose.test.yml up -d db restserver joex",
+    "test:down": "docker compose -f docker-compose.test.yml down",
+    "prepublishOnly": "n8n-node prerelease",
+    "release": "n8n-node release"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
@@ -37,17 +44,46 @@
     ]
   },
   "devDependencies": {
-    "@types/express": "^4.17.6",
-    "@types/request-promise-native": "~1.0.15",
-    "@typescript-eslint/parser": "~5.45",
-    "eslint-plugin-n8n-nodes-base": "^1.11.0",
-    "gulp": "^5.0.0",
-    "n8n-core": "*",
-    "n8n-workflow": "*",
-    "prettier": "^2.7.1",
-    "typescript": "~4.8.4"
+    "@n8n/node-cli": "^0.32.1",
+    "oxlint": "^1.68.0",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
   },
-  "dependencies": {
-    "@devlikeapro/n8n-openapi-node": "^0.1.4"
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "docspellVersion": "0.43.0",
+  "n8nWorkflowVersion": "2.45.1",
+  "n8nNodeTooling": {
+    "upstream": {
+      "name": "Docspell",
+      "source": {
+        "type": "github",
+        "repo": "eikek/docspell"
+      },
+      "track": {
+        "type": "field",
+        "name": "docspellVersion"
+      },
+      "majorOffset": 0
+    },
+    "readme": "Last tested with n8n {n8n} and Docspell {upstream}.",
+    "pins": [
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/restserver:v{version}",
+        "from": "upstream"
+      },
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/joex:v{version}",
+        "from": "upstream"
+      },
+      {
+        "file": "docker-compose.test.yml",
+        "template": "image: n8nio/n8n:{version}",
+        "from": "n8n"
+      }
+    ]
   }
 }

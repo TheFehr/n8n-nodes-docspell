@@ -1,21 +1,18 @@
-import axios, { AxiosRequestConfig } from 'axios';
 import {
 	IAuthenticate,
+	IconFile,
 	ICredentialTestRequest,
 	ICredentialType,
 	IHttpRequestOptions,
 	INodeProperties,
 } from 'n8n-workflow';
 
-interface Credentials {
-	url: string;
-	account: string;
-	password: string;
-}
+import { DocspellLoginCredentials, getSessionToken } from './DocspellSession';
 
 export class DocspellApi implements ICredentialType {
 	name = 'docspellApi';
 	displayName = 'Docspell API';
+	icon = 'file:docspell.svg' as IconFile;
 	documentationUrl = 'https://docspell.org/docs/api/intro/#authentication';
 	properties: INodeProperties[] = [
 		{
@@ -23,14 +20,14 @@ export class DocspellApi implements ICredentialType {
 			name: 'url',
 			type: 'string',
 			default: '',
-			required: true
+			required: true,
 		},
 		{
-			displayName: 'Account name',
+			displayName: 'Account Name',
 			name: 'account',
 			type: 'string',
 			default: '',
-			required: true
+			required: true,
 		},
 		{
 			displayName: 'Password',
@@ -40,54 +37,38 @@ export class DocspellApi implements ICredentialType {
 				password: true,
 			},
 			default: '',
-			required: true
-		}
+			required: true,
+		},
 	];
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials?.url}}/api/v1',
-			url: '/open/auth/login',
+			baseURL: '={{$credentials?.url?.replace(/\\/$/, \'\')}}',
+			url: '/api/v1/open/auth/login',
 			method: 'POST',
 			body: {
 				account: '={{$credentials?.account}}',
-				password: '={{$credentials?.password}}'
-			}
+				password: '={{$credentials?.password}}',
+			},
 		},
 		rules: [
 			{
 				type: 'responseSuccessBody',
 				properties: {
-					message: 'Login wasn\'t successful',
+					message: "Login wasn't successful",
 					key: 'success',
-					value: false
-				}
-			}
-		]
-	}
+					value: false,
+				},
+			},
+		],
+	};
 
 	authenticate: IAuthenticate = async (rawCredentials, requestOptions): Promise<IHttpRequestOptions> => {
-		const creds = rawCredentials as unknown as Credentials;
+		const token = await getSessionToken(rawCredentials as unknown as DocspellLoginCredentials);
 
-		const axiosRequestConfig: AxiosRequestConfig = {
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			method: 'POST',
-			data: {
-				account: creds.account,
-				password: creds.password
-			},
-			url: `${creds.url}/api/v1/open/auth/login`,
+		return {
+			...requestOptions,
+			headers: { ...requestOptions.headers, 'X-Docspell-Auth': token },
 		};
-		const result = await axios(axiosRequestConfig);
-		const {token} = result.data;
-
-		requestOptions.headers = {
-			...requestOptions.headers,
-			'X-Docspell-Auth': token,
-		}
-
-		return requestOptions;
 	};
 }

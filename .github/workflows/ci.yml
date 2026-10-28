@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: TheFehr/n8n-node-tooling/.github/workflows/ci.yml@845877d666f9641ee78acaddc5f799f7910a1544
+    with:
+      tooling-ref: 845877d666f9641ee78acaddc5f799f7910a1544
+      lint-script: lint:n8n
+      extra-lint-script: lint:oxlint
+      integration: true
