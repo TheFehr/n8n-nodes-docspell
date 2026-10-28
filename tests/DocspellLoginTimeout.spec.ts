@@ -10,14 +10,19 @@ let requestsReceived: number;
 let url: string;
 // What the stalled server does with a request: nothing, or headers and then silence.
 let sendHeaders = false;
+let replyWithText = false;
 
 beforeEach(async () => {
 	resetSessionCache();
 	requestsReceived = 0;
 	sendHeaders = false;
+	replyWithText = false;
 	server = createServer((_request, response) => {
 		requestsReceived++;
-		if (sendHeaders) {
+		if (replyWithText) {
+			response.writeHead(200, { 'Content-Type': 'text/html' });
+			response.end('<html>not what we expected</html>');
+		} else if (sendHeaders) {
 			response.writeHead(200, { 'Content-Type': 'application/json' });
 			response.write('{"success":');
 		}
@@ -56,5 +61,11 @@ describe('login against a server that never answers', () => {
 		sendHeaders = true;
 
 		await expect(getSessionToken(credentials(), 300)).rejects.toThrow(/could not reach docspell.*time/i);
+	});
+
+	it('still reports a complete reply that is not JSON as such', async () => {
+		replyWithText = true;
+
+		await expect(getSessionToken(credentials(), 300)).rejects.toThrow(/not JSON/);
 	});
 });
