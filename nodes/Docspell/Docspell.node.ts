@@ -70,6 +70,7 @@ export class Docspell implements INodeType {
 				}
 				if (error instanceof NodeApiError || error instanceof NodeOperationError) {
 					// Already a node error: rewrapping it would lose the HTTP status.
+					error.context.itemIndex = itemIndex;
 					// eslint-disable-next-line @n8n/community-nodes/require-node-api-error
 					throw error;
 				}

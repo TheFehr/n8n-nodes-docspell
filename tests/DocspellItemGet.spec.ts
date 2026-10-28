@@ -84,4 +84,15 @@ describe('Item > Get against a real Docspell', () => {
 		expect(items[0].json.error).toMatch(/not found/i);
 		expect(items[1].json.name).toBe('invoice-beta.txt');
 	});
+
+	it('says which input item failed when it stops the run', async () => {
+		const good = await idOf('invoice-beta.txt');
+
+		await expect(
+			run('get', {}, {
+				inputItems: [{ json: {} }, { json: {} }],
+				parameters: (index: number) => ({ resource: 'item', operation: 'get', itemId: index === 0 ? good : 'nope' }),
+			}),
+		).rejects.toMatchObject({ context: { itemIndex: 1 } });
+	});
 });
