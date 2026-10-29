@@ -171,6 +171,8 @@ export async function executeItemUpdate(
 		const note = `already applied: ${applied.join(', ')}`;
 		if (error instanceof NodeApiError || error instanceof NodeOperationError) {
 			if (!`${error.message} ${error.description ?? ''}`.includes('already applied')) {
+				// Continue On Fail outputs only the message; the UI shows the description.
+				error.message = `${error.message} (${note})`;
 				error.description = error.description ? `${error.description} (${note})` : note;
 			}
 			throw error;

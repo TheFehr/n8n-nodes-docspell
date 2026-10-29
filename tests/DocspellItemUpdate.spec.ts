@@ -278,6 +278,19 @@ describe('Item > Update against a real Docspell', () => {
 			expect(`${error.message} ${error.description ?? ''}`.match(/already applied/g)).toHaveLength(1);
 		});
 
+		it('puts the applied list in the Continue On Fail output for a later HTTP failure', async () => {
+			const id = await itemIdByName(UPDATE_TARGET);
+			const { context } = createExecuteContext({
+				continueOnFail: true,
+				failWhen: (request) => request.method === 'GET' && request.url.endsWith(`/sec/item/${id}`),
+				parameters: { resource: 'item', operation: 'update', itemId: id, updateFields: { notes: 'applied before the read' } },
+			});
+			const [items] = await node.execute!.call(context);
+
+			expect(items[0].json.error).toMatch(/already applied: notes/);
+			expect(items[0].json.error).toMatch(/service unavailable/i);
+		});
+
 		it('keeps going after a failure when Continue On Fail is set', async () => {
 			const id = await itemIdByName(UPDATE_TARGET);
 			const { context } = createExecuteContext({
