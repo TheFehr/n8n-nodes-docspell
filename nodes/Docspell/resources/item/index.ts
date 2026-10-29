@@ -3,6 +3,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import { itemGetDescription } from './get';
 import { itemSearchDescription } from './search';
 import { itemUpdateDescription } from './update';
+import { itemUploadDescription } from './upload';
 
 export const itemDescription: INodeProperties[] = [
 	{
@@ -30,10 +31,17 @@ export const itemDescription: INodeProperties[] = [
 				description: 'Change the fields of an item',
 				action: 'Update an item',
 			},
+			{
+				name: 'Upload',
+				value: 'upload',
+				description: 'Upload files to Docspell, which makes items of them',
+				action: 'Upload files',
+			},
 		],
 		default: 'get',
 	},
 	...itemGetDescription,
 	...itemSearchDescription,
 	...itemUpdateDescription,
+	...itemUploadDescription,
 ];

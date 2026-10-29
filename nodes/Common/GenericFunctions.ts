@@ -4,7 +4,7 @@ import { NodeApiError } from 'n8n-workflow';
 interface DocspellRequest {
 	method: IHttpRequestMethods;
 	endpoint: string;
-	body?: IDataObject;
+	body?: IHttpRequestOptions['body'];
 	qs?: IDataObject;
 }
 
@@ -41,4 +41,35 @@ export async function docspellApiRequest(
 			message: statusMessages[status],
 		});
 	}
+}
+
+interface Named {
+	id: string;
+	name: string;
+}
+
+export interface ResolvedTags {
+	ids: string[];
+	names: string[];
+	unknown: string[];
+}
+
+// Docspell silently drops tags it does not know, so callers resolve them first. A token is
+// an ID or a name.
+export async function resolveTags(context: IExecuteFunctions, tokens: string[]): Promise<ResolvedTags> {
+	const known = ((await docspellApiRequest(context, { method: 'GET', endpoint: '/sec/tag' })) as { items: Named[] }).items;
+	const resolved = tokens.map((token) => known.find((tag) => tag.id === token) ?? known.find((tag) => tag.name === token));
+	return {
+		ids: resolved.filter((tag): tag is Named => tag !== undefined).map((tag) => tag.id),
+		names: resolved.filter((tag): tag is Named => tag !== undefined).map((tag) => tag.name),
+		unknown: tokens.filter((_, index) => resolved[index] === undefined),
+	};
+}
+
+// Splits "a, b" into trimmed, non-empty tokens.
+export function splitList(text: string): string[] {
+	return text
+		.split(',')
+		.map((token) => token.trim())
+		.filter((token) => token !== '');
 }

@@ -4,8 +4,8 @@ import { ACCOUNT, DOCSPELL_URL, PASSWORD } from './helpers';
 // Direct calls to Docspell, for setting up and checking state independently of the node.
 // The responses are checked field by field in the tests, so they stay loosely typed here.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function docspell<T = any>(method: string, path: string, body?: unknown): Promise<T> {
-	const token = await getSessionToken({ url: DOCSPELL_URL, account: ACCOUNT, password: PASSWORD });
+export async function docspell<T = any>(method: string, path: string, body?: unknown, account = ACCOUNT): Promise<T> {
+	const token = await getSessionToken({ url: DOCSPELL_URL, account, password: PASSWORD });
 	const response = await fetch(`${DOCSPELL_URL}/api/v1${path}`, {
 		method,
 		headers: { 'X-Docspell-Auth': token, ...(body ? { 'Content-Type': 'application/json' } : {}) },

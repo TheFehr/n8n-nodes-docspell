@@ -10,7 +10,7 @@ if command -v fnm &>/dev/null; then
 fi
 
 COMPOSE="docker compose -f docker-compose.test.yml"
-OUTPUT_FILES="workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
+OUTPUT_FILES="upload_output.txt upload_no_file_output.txt workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
 
 on_exit() {
 	EXIT_CODE=$?
@@ -66,6 +66,8 @@ run_in_n8n "
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_get_not_found.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update_not_found.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload_no_file.json && \
   n8n execute --id=1
 " > workflow_output.txt 2>&1 || {
 	echo "❌ The Item Search workflow did not run to completion"
@@ -113,6 +115,17 @@ fi
 require_markers update_output.txt "Item Update workflow" "item updated" "item restored"
 echo "✅ Item Update workflow succeeded (Search -> Update -> Update back, asserted after each)"
 
+run_in_n8n "n8n execute --id=8" > upload_output.txt 2>&1 || {
+	echo "❌ The Item Upload workflow did not run to completion"
+	exit 1
+}
+if ! grep -q '"status": *"success"' upload_output.txt; then
+	echo "❌ The Item Upload workflow did not finish with status success"
+	exit 1
+fi
+require_markers upload_output.txt "Item Upload workflow" "upload accepted" "uploaded item found"
+echo "✅ Item Upload workflow succeeded (binary file -> Upload -> wait -> Search, asserted at both ends)"
+
 # n8n aborts a workflow on the first node error, so failures run in their own process.
 expect_failure() {
 	local id=$1 label=$2 output_file=$3 expected=$4
@@ -130,6 +143,7 @@ expect_failure 2 "Unparseable query" bad_query_output.txt "search query"
 expect_failure 3 "Wrong password" bad_credentials_output.txt "login failed"
 expect_failure 5 "Unknown item id" not_found_output.txt "was not found"
 expect_failure 7 "Update of an unknown item" update_not_found_output.txt "was not found"
+expect_failure 9 "Upload without a file" upload_no_file_output.txt "binary"
 
 echo "Running the vitest suite..."
 npm run test:run

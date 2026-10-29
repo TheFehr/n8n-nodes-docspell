@@ -11,6 +11,14 @@ export const USER = 'tester';
 export const ACCOUNT = `${COLLECTIVE}/${USER}`;
 export const PASSWORD = 'test-password-1';
 
+// Uploads create new items, which would change what the search tests count, so the
+// upload tests use an account (and with it a collective) of their own.
+export const UPLOAD_COLLECTIVE = 'e2e-upload';
+export const UPLOAD_USER = 'uploader';
+export const UPLOAD_ACCOUNT = `${UPLOAD_COLLECTIVE}/${UPLOAD_USER}`;
+export const UPLOAD_TAG = 'upload-tag';
+export const UPLOAD_FOLDER = 'upload-folder';
+
 // Upload only attaches tags that already exist, so they are created first.
 export const SEED_TAGS = [
 	{ name: 'e2e-invoice', category: 'finance' },
@@ -72,13 +80,14 @@ const json = (body) => ({
 	body: JSON.stringify(body),
 });
 
-async function registerAndLogin(url) {
-	const registered = await api(url, null, '/open/signup/register', json({ collectiveName: COLLECTIVE, login: USER, password: PASSWORD }));
+async function registerAndLogin(url, collective = COLLECTIVE, user = USER) {
+	const account = `${collective}/${user}`;
+	const registered = await api(url, null, '/open/signup/register', json({ collectiveName: collective, login: user, password: PASSWORD }));
 	if (!registered.success && !/already exists/i.test(registered.message)) {
-		throw new Error(`Could not register ${ACCOUNT}: ${registered.message}`);
+		throw new Error(`Could not register ${account}: ${registered.message}`);
 	}
-	const session = await api(url, null, '/open/auth/login', json({ account: ACCOUNT, password: PASSWORD }));
-	if (!session.success) throw new Error(`Could not log in as ${ACCOUNT}: ${session.message}`);
+	const session = await api(url, null, '/open/auth/login', json({ account, password: PASSWORD }));
+	if (!session.success) throw new Error(`Could not log in as ${account}: ${session.message}`);
 	return session.token;
 }
 
@@ -112,8 +121,21 @@ async function seedReferenceData(url, token) {
 	}
 }
 
+// The upload account only needs a tag and a folder to upload into; its items come from the tests.
+async function seedUploadAccount(url) {
+	const token = await registerAndLogin(url, UPLOAD_COLLECTIVE, UPLOAD_USER);
+	if (!(await api(url, token, '/sec/tag')).items.some((tag) => tag.name === UPLOAD_TAG)) {
+		await api(url, token, '/sec/tag', json({ id: '', created: 0, name: UPLOAD_TAG, category: 'upload' }));
+	}
+	if (!(await api(url, token, '/sec/folder')).items.some((folder) => folder.name === UPLOAD_FOLDER)) {
+		const created = await api(url, token, '/sec/folder', json({ name: UPLOAD_FOLDER }));
+		if (!created.success) throw new Error(`Could not create folder ${UPLOAD_FOLDER}: ${created.message}`);
+	}
+}
+
 export async function seed(url = DOCSPELL_URL) {
 	await waitForServer(url);
+	await seedUploadAccount(url);
 	const token = await registerAndLogin(url);
 
 	const existingTags = (await api(url, token, '/sec/tag')).items.map((tag) => tag.name);

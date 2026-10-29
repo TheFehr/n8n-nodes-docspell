@@ -1,0 +1,193 @@
+{
+  "id": "8",
+  "name": "Docspell Item Upload",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const name = 'pipeline-upload-' + Date.now() + '.txt';\nconst data = await this.helpers.prepareBinaryData(Buffer.from('uploaded by the pipeline ' + name), name, 'text/plain');\nreturn [{ json: { name }, binary: { data } }];"
+      },
+      "id": "m",
+      "name": "Make file",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "upload",
+        "binaryPropertyName": "data",
+        "options": {
+          "direction": "outgoing",
+          "folder": "upload-folder",
+          "tags": "upload-tag"
+        }
+      },
+      "id": "u",
+      "name": "Upload the file",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        540,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-upload-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const name = $('Make file').first().json.name;\nconst result = $input.first().json;\nconst problems = [];\nif (result.success !== true) problems.push('success=' + result.success);\nif (JSON.stringify(result.files) !== JSON.stringify([name])) problems.push('files=' + JSON.stringify(result.files));\nif (problems.length) throw new Error('Upload was not accepted: ' + problems.join('; '));\nreturn [{ json: { verified: 'upload accepted', name } }];"
+      },
+      "id": "a1",
+      "name": "Assert accepted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 35,
+        "unit": "seconds"
+      },
+      "id": "w",
+      "name": "Wait for processing",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        100
+      ],
+      "webhookId": "7f1f2a52-6a0b-4f4b-9d4e-0d6a4c3d9e10"
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "={{ 'name:\"' + $('Make file').first().json.name + '\"' }}",
+        "returnAll": true,
+        "options": {
+          "withDetails": true
+        }
+      },
+      "id": "s",
+      "name": "Find the item",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-upload-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1) throw new Error('Expected the uploaded item, got ' + items.length);\nconst item = items[0].json;\nconst tags = (item.tags || []).map((tag) => tag.name);\nconst problems = [];\nif (item.direction !== 'outgoing') problems.push('direction=' + item.direction);\nif (!item.folder || item.folder.name !== 'upload-folder') problems.push('folder=' + JSON.stringify(item.folder));\nif (JSON.stringify(tags) !== JSON.stringify(['upload-tag'])) problems.push('tags=' + JSON.stringify(tags));\nif (problems.length) throw new Error('Upload did not apply: ' + problems.join('; '));\nreturn [{ json: { verified: 'uploaded item found', id: item.id } }];"
+      },
+      "id": "a2",
+      "name": "Assert item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Make file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make file": {
+      "main": [
+        [
+          {
+            "node": "Upload the file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload the file": {
+      "main": [
+        [
+          {
+            "node": "Assert accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assert accepted": {
+      "main": [
+        [
+          {
+            "node": "Wait for processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for processing": {
+      "main": [
+        [
+          {
+            "node": "Find the item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find the item": {
+      "main": [
+        [
+          {
+            "node": "Assert item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
