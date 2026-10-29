@@ -2,7 +2,7 @@ import type { IDataObject, INodeExecutionData } from 'n8n-workflow';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Docspell } from '../nodes/Docspell/Docspell.node';
-import { docspell } from './docspellApi';
+import { docspell, operationsOf } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
 import { UPLOAD_ACCOUNT, UPLOAD_FOLDER, UPLOAD_TAG } from './helpers';
 
@@ -67,8 +67,7 @@ describe('Item > Upload against a real Docspell', { timeout: 120_000 }, () => {
 	});
 
 	it('is offered as an operation', () => {
-		const operation = node.description.properties.find((property) => property.name === 'operation');
-		expect(operation?.options).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'upload' })]));
+		expect(operationsOf(node.description.properties, 'item')).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'upload' })]));
 	});
 
 	it('uploads a file that becomes an item with that file as its attachment', async () => {

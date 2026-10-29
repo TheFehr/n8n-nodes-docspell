@@ -35,11 +35,16 @@ export const SEED_CUSTOM_FIELD = 'e2e-ref';
 // The update tests change this item and put it back; it carries no tag.
 export const UPDATE_TARGET = 'update-target.txt';
 
+// Bytes that are not valid UTF-8, to prove that a download is not decoded as text on the way.
+export const LATIN1_DOCUMENT = 'latin1-sample.txt';
+export const LATIN1_BYTES = Uint8Array.from([0x4d, 0xfc, 0x6c, 0x6c, 0x65, 0x72, 0x20, 0xe4, 0xf6, 0xff, 0x0a]);
+
 export const SEED_DOCUMENTS = [
 	{ name: 'invoice-alpha.txt', tag: 'e2e-invoice', text: 'Invoice alpha from zebrafruit GmbH. Total 100 CHF.' },
 	{ name: 'invoice-beta.txt', tag: 'e2e-invoice', text: 'Invoice beta from zebrafruit GmbH. Total 250 CHF.' },
 	{ name: 'contract-gamma.txt', tag: 'e2e-contract', text: 'Contract gamma between the parties, signed in Bern.' },
 	{ name: UPDATE_TARGET, tag: null, text: 'A scratch document that the update tests edit.' },
+	{ name: LATIN1_DOCUMENT, tag: null, bytes: LATIN1_BYTES },
 ];
 
 const STARTUP_TIMEOUT_MS = 120_000;
@@ -150,7 +155,7 @@ export async function seed(url = DOCSPELL_URL) {
 		if ((await search(url, token, `name:${doc.name}`)).length > 0) continue;
 		const form = new FormData();
 		form.append('meta', new Blob([JSON.stringify({ multiple: false, tags: { items: doc.tag ? [doc.tag] : [] } })], { type: 'application/json' }));
-		form.append('file', new Blob([doc.text], { type: 'text/plain' }), doc.name);
+		form.append('file', new Blob([doc.bytes ?? doc.text], { type: 'text/plain' }), doc.name);
 		const uploaded = await api(url, token, '/sec/upload/item', { method: 'POST', body: form });
 		if (!uploaded.success) throw new Error(`Upload of ${doc.name} failed: ${uploaded.message}`);
 	}

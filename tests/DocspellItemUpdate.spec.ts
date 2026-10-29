@@ -2,7 +2,7 @@ import type { IDataObject } from 'n8n-workflow';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { Docspell } from '../nodes/Docspell/Docspell.node';
-import { docspell, getItem, itemIdByName, referenceId } from './docspellApi';
+import { docspell, getItem, itemIdByName, operationsOf, referenceId } from './docspellApi';
 import { createExecuteContext, type RecordedRequest } from './fakeExecuteContext';
 import { SEED_CUSTOM_FIELD, SEED_FOLDER, SEED_ORGANIZATION, SEED_PERSON, SEED_EQUIPMENT, UPDATE_TARGET } from './helpers';
 
@@ -47,8 +47,7 @@ afterEach(async () => {
 
 describe('Item > Update against a real Docspell', () => {
 	it('is offered as an operation', () => {
-		const operation = node.description.properties.find((property) => property.name === 'operation');
-		expect(operation?.options).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'update' })]));
+		expect(operationsOf(node.description.properties, 'item')).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'update' })]));
 	});
 
 	it('changes the name and returns the updated item', async () => {

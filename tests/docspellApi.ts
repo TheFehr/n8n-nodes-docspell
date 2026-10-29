@@ -1,3 +1,5 @@
+import type { INodeProperties } from 'n8n-workflow';
+
 import { getSessionToken } from '../credentials/DocspellSession';
 import { ACCOUNT, DOCSPELL_URL, PASSWORD } from './helpers';
 
@@ -30,3 +32,16 @@ export async function referenceId(kind: 'folder' | 'organization' | 'person' | '
 }
 
 export const getItem = (id: string) => docspell('GET', `/sec/item/${id}`);
+
+export async function attachmentIdOf(itemName: string): Promise<string> {
+	const item = await getItem(await itemIdByName(itemName));
+	return item.attachments[0].id;
+}
+
+// The operations a resource offers; every resource declares its own "operation" property.
+export function operationsOf(properties: INodeProperties[], resource: string) {
+	const operation = properties.find(
+		(property) => property.name === 'operation' && property.displayOptions?.show?.resource?.includes(resource),
+	);
+	return operation?.options ?? [];
+}

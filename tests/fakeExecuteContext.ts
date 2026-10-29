@@ -87,6 +87,11 @@ export function createExecuteContext(options: Options) {
 			},
 			body: hasBody ? (multipart ? (authenticated.body as FormData) : JSON.stringify(authenticated.body)) : undefined,
 		});
+		if (requestOptions.encoding === 'arraybuffer' && response.ok) {
+			const body = Buffer.from(await response.arrayBuffer());
+			if (!requestOptions.returnFullResponse) return body;
+			return { body, headers: Object.fromEntries(response.headers.entries()), statusCode: response.status };
+		}
 		const text = await response.text();
 		if (!response.ok) {
 			throw Object.assign(new Error(`Request failed with status code ${response.status}`), {
@@ -120,6 +125,12 @@ export function createExecuteContext(options: Options) {
 		}),
 		continueOnFail: () => options.continueOnFail ?? false,
 		helpers: {
+			prepareBinaryData: async (buffer: Buffer, fileName?: string, mimeType?: string) => ({
+				data: buffer.toString('base64'),
+				fileName,
+				mimeType: mimeType ?? 'application/octet-stream',
+				fileSize: String(buffer.length),
+			}),
 			assertBinaryData: (itemIndex: number, propertyName: string) => binaryOf(itemIndex, propertyName),
 			getBinaryDataBuffer: async (itemIndex: number, propertyName: string) =>
 				Buffer.from(binaryOf(itemIndex, propertyName).data, 'base64'),

@@ -1,0 +1,54 @@
+{
+  "id": "11",
+  "name": "Docspell Attachment Not Found",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "attachment",
+        "operation": "download",
+        "attachmentId": "no-such-attachment"
+      },
+      "id": "d",
+      "name": "Download an unknown attachment",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download an unknown attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

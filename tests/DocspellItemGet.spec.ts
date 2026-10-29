@@ -2,6 +2,7 @@ import type { IDataObject } from 'n8n-workflow';
 import { describe, expect, it } from 'vitest';
 
 import { Docspell } from '../nodes/Docspell/Docspell.node';
+import { operationsOf } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
 
 const node = new Docspell();
@@ -22,8 +23,7 @@ async function idOf(name: string): Promise<string> {
 
 describe('Item > Get against a real Docspell', () => {
 	it('is offered as an operation', () => {
-		const operation = node.description.properties.find((property) => property.name === 'operation');
-		expect(operation?.options).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'get' })]));
+		expect(operationsOf(node.description.properties, 'item')).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'get' })]));
 	});
 
 	it('returns the full detail of one item', async () => {

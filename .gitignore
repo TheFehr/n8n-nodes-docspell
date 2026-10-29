@@ -20,3 +20,5 @@ bad_query_output.txt
 bad_credentials_output.txt
 upload_output.txt
 upload_no_file_output.txt
+attachment_output.txt
+attachment_not_found_output.txt

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { searchAllPages } from '../nodes/Docspell/resources/item/search';
 import { Docspell } from '../nodes/Docspell/Docspell.node';
+import { operationsOf } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
 import { SEED_DOCUMENTS } from './helpers';
 
@@ -23,10 +24,9 @@ describe('Docspell node description', () => {
 	it('offers Item > Search', () => {
 		const properties = node.description.properties;
 		const resource = properties.find((property) => property.name === 'resource');
-		const operation = properties.find((property) => property.name === 'operation');
 
 		expect(resource?.options).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'item' })]));
-		expect(operation?.options).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'search' })]));
+		expect(operationsOf(properties, 'item')).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'search' })]));
 		expect(node.description.credentials).toEqual([{ name: 'docspellApi', required: true }]);
 	});
 });

@@ -10,7 +10,7 @@ if command -v fnm &>/dev/null; then
 fi
 
 COMPOSE="docker compose -f docker-compose.test.yml"
-OUTPUT_FILES="upload_output.txt upload_no_file_output.txt workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
+OUTPUT_FILES="attachment_output.txt attachment_not_found_output.txt upload_output.txt upload_no_file_output.txt workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
 
 on_exit() {
 	EXIT_CODE=$?
@@ -68,6 +68,8 @@ run_in_n8n "
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update_not_found.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload_no_file.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/attachment_download.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/attachment_download_not_found.json && \
   n8n execute --id=1
 " > workflow_output.txt 2>&1 || {
 	echo "❌ The Item Search workflow did not run to completion"
@@ -126,6 +128,17 @@ fi
 require_markers upload_output.txt "Item Upload workflow" "upload accepted" "uploaded item found"
 echo "✅ Item Upload workflow succeeded (binary file -> Upload -> wait -> Search, asserted at both ends)"
 
+run_in_n8n "n8n execute --id=10" > attachment_output.txt 2>&1 || {
+	echo "❌ The Attachment Download workflow did not run to completion"
+	exit 1
+}
+if ! grep -q '"status": *"success"' attachment_output.txt; then
+	echo "❌ The Attachment Download workflow did not finish with status success"
+	exit 1
+fi
+require_markers attachment_output.txt "Attachment Download workflow" "attachment downloaded"
+echo "✅ Attachment Download workflow succeeded (Search -> Download, bytes compared exactly)"
+
 # n8n aborts a workflow on the first node error, so failures run in their own process.
 expect_failure() {
 	local id=$1 label=$2 output_file=$3 expected=$4
@@ -143,6 +156,7 @@ expect_failure 2 "Unparseable query" bad_query_output.txt "search query"
 expect_failure 3 "Wrong password" bad_credentials_output.txt "login failed"
 expect_failure 5 "Unknown item id" not_found_output.txt "was not found"
 expect_failure 7 "Update of an unknown item" update_not_found_output.txt "was not found"
+expect_failure 11 "Download of an unknown attachment" attachment_not_found_output.txt "was not found"
 expect_failure 9 "Upload without a file" upload_no_file_output.txt "binary"
 
 echo "Running the vitest suite..."

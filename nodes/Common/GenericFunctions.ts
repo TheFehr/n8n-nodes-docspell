@@ -73,3 +73,41 @@ export function splitList(text: string): string[] {
 		.map((token) => token.trim())
 		.filter((token) => token !== '');
 }
+
+export interface DownloadedFile {
+	buffer: Buffer;
+	headers: Record<string, string>;
+}
+
+// Files are fetched as raw bytes: decoding them as text would corrupt anything that is not UTF-8.
+export async function docspellDownload(
+	context: IExecuteFunctions,
+	endpoint: string,
+	statusMessages: StatusMessages = {},
+): Promise<DownloadedFile> {
+	const { url } = await context.getCredentials('docspellApi');
+
+	const options: IHttpRequestOptions = {
+		method: 'GET',
+		baseURL: `${String(url).replace(/\/+$/, '')}/api/v1`,
+		url: endpoint,
+		encoding: 'arraybuffer',
+		returnFullResponse: true,
+		json: false,
+	};
+
+	try {
+		const response = (await context.helpers.httpRequestWithAuthentication.call(context, 'docspellApi', options)) as {
+			body: Buffer | ArrayBuffer;
+			headers: Record<string, string>;
+		};
+		return { buffer: Buffer.from(response.body as ArrayBuffer), headers: response.headers };
+	} catch (error) {
+		const status = Number(
+			(error as { httpCode?: string }).httpCode ?? (error as { response?: { status?: number } }).response?.status,
+		);
+		throw new NodeApiError(context.getNode(), error as JsonObject, {
+			message: statusMessages[status],
+		});
+	}
+}
