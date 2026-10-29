@@ -2,9 +2,10 @@ import type { IDataObject, INodeExecutionData } from 'n8n-workflow';
 import { describe, expect, it } from 'vitest';
 
 import { Docspell } from '../nodes/Docspell/Docspell.node';
-import { attachmentIdOf, operationsOf } from './docspellApi';
+import { fileNameOf } from '../nodes/Docspell/resources/attachment/download';
+import { attachmentIdOf, docspell, operationsOf } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
-import { LATIN1_BYTES, LATIN1_DOCUMENT, SEED_DOCUMENTS } from './helpers';
+import { DOCSPELL_URL, LATIN1_BYTES, LATIN1_DOCUMENT, PASSWORD, SEED_DOCUMENTS, UPLOAD_ACCOUNT } from './helpers';
 
 const node = new Docspell();
 const ALPHA = SEED_DOCUMENTS[0];
@@ -18,6 +19,58 @@ async function download(attachmentId: string, extra: IDataObject = {}) {
 }
 
 const bytesOf = (item: INodeExecutionData, property = 'data') => Buffer.from(item.binary![property].data, 'base64');
+
+describe('File names in Content-Disposition', () => {
+	it.each([
+		['inline; filename="invoice.pdf"', 'invoice.pdf'],
+		['attachment; filename=invoice.pdf; size=10', 'invoice.pdf'],
+		['inline; filename="invoice; April.pdf"', 'invoice; April.pdf'],
+		['inline; filename="say \\"hi\\".txt"', 'say "hi".txt'],
+		['inline; filename="a;b.pdf"; size=3', 'a;b.pdf'],
+		["inline; filename*=UTF-8''gr%C3%BCn%20%26%20blau.pdf", 'grün & blau.pdf'],
+		['inline; filename="fallback.pdf"; filename*=UTF-8\'\'real%20name.pdf', 'real name.pdf'],
+	])('reads %s', (header, expected) => {
+		expect(fileNameOf(header)).toBe(expected);
+	});
+
+	it.each([undefined, '', 'inline', 'attachment; size=3'])('finds no name in %j', (header) => {
+		expect(fileNameOf(header)).toBeUndefined();
+	});
+});
+
+describe('Attachment > Download of a name with a semicolon', () => {
+	it('keeps the whole name', async () => {
+		const name = `semi; colon ${Date.now()}.txt`;
+		const form = new FormData();
+		form.append('meta', new Blob([JSON.stringify({ multiple: false })], { type: 'application/json' }));
+		form.append('file', new Blob(['semicolon'], { type: 'text/plain' }), name);
+		const token = (await (await fetch(`${DOCSPELL_URL}/api/v1/open/auth/login`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ account: UPLOAD_ACCOUNT, password: PASSWORD }),
+		})).json()).token;
+		await fetch(`${DOCSPELL_URL}/api/v1/sec/upload/item`, { method: 'POST', headers: { 'X-Docspell-Auth': token }, body: form });
+
+		let attachmentId: string | undefined;
+		for (let attempt = 0; attempt < 45 && !attachmentId; attempt++) {
+			const found = await docspell('POST', '/sec/item/search', { query: 'name:"semi*"', limit: 20, offset: 0, withDetails: true }, UPLOAD_ACCOUNT);
+			const match = found.groups
+				.flatMap((group: { items: Array<{ name: string; attachments: Array<{ id: string }> }> }) => group.items)
+				.find((item: { name: string }) => item.name === name);
+			attachmentId = match?.attachments[0].id;
+			if (!attachmentId) await new Promise((resolve) => setTimeout(resolve, 2_000));
+		}
+		expect(attachmentId, 'the uploaded item never appeared').toBeDefined();
+
+		const { context } = createExecuteContext({
+			credentials: { account: UPLOAD_ACCOUNT },
+			parameters: { resource: 'attachment', operation: 'download', attachmentId },
+		});
+		const [items] = await node.execute!.call(context);
+		expect(items[0].json.fileName).toBe(name);
+		expect(items[0].binary!.data.fileName).toBe(name);
+	}, 120_000);
+});
 
 describe('Attachment > Download against a real Docspell', () => {
 	it('is offered as a resource with a download operation', () => {

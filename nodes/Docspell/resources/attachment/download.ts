@@ -48,7 +48,7 @@ export const attachmentDownloadDescription: INodeProperties[] = [
 ];
 
 // Content-Disposition carries the name either plainly or percent-encoded (filename*=UTF-8'').
-function fileNameOf(disposition: string | undefined): string | undefined {
+export function fileNameOf(disposition: string | undefined): string | undefined {
 	if (!disposition) return undefined;
 	const encoded = /filename\*\s*=\s*[^']*'[^']*'([^;]+)/i.exec(disposition);
 	if (encoded) {
@@ -58,7 +58,11 @@ function fileNameOf(disposition: string | undefined): string | undefined {
 			// Fall through to the plain form.
 		}
 	}
-	return /filename\s*=\s*"?([^";]+)"?/i.exec(disposition)?.[1].trim();
+	// A quoted name runs to its closing quote, so a semicolon inside it belongs to the name.
+	const plain = /(?:^|[;\s])filename\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^;]*))/i.exec(disposition);
+	if (!plain) return undefined;
+	const name = plain[1] !== undefined ? plain[1].replace(/\\(.)/g, '$1') : plain[2].trim();
+	return name === '' ? undefined : name;
 }
 
 export async function executeAttachmentDownload(
