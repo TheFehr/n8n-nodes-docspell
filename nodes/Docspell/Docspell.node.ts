@@ -9,6 +9,7 @@ import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workf
 import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
+import { executeItemUpdate } from './resources/item/update';
 
 export class Docspell implements INodeType {
 	description: INodeTypeDescription = {
@@ -57,6 +58,8 @@ export class Docspell implements INodeType {
 					returnData.push(...(await executeItemGet(this, itemIndex)));
 				} else if (resource === 'item' && operation === 'search') {
 					returnData.push(...(await executeItemSearch(this, itemIndex)));
+				} else if (resource === 'item' && operation === 'update') {
+					returnData.push(...(await executeItemUpdate(this, itemIndex)));
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unsupported operation: ${resource}/${operation}`, { itemIndex });
 				}

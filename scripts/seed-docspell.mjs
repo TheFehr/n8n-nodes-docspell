@@ -17,10 +17,21 @@ export const SEED_TAGS = [
 	{ name: 'e2e-contract', category: 'legal' },
 ];
 
+// Reference data the update tests assign to items.
+export const SEED_FOLDER = 'e2e-folder';
+export const SEED_ORGANIZATION = 'e2e-org';
+export const SEED_PERSON = 'e2e-person';
+export const SEED_EQUIPMENT = 'e2e-device';
+export const SEED_CUSTOM_FIELD = 'e2e-ref';
+
+// The update tests change this item and put it back; it carries no tag.
+export const UPDATE_TARGET = 'update-target.txt';
+
 export const SEED_DOCUMENTS = [
 	{ name: 'invoice-alpha.txt', tag: 'e2e-invoice', text: 'Invoice alpha from zebrafruit GmbH. Total 100 CHF.' },
 	{ name: 'invoice-beta.txt', tag: 'e2e-invoice', text: 'Invoice beta from zebrafruit GmbH. Total 250 CHF.' },
 	{ name: 'contract-gamma.txt', tag: 'e2e-contract', text: 'Contract gamma between the parties, signed in Bern.' },
+	{ name: UPDATE_TARGET, tag: null, text: 'A scratch document that the update tests edit.' },
 ];
 
 const STARTUP_TIMEOUT_MS = 120_000;
@@ -76,6 +87,31 @@ async function search(url, token, query) {
 	return result.groups.flatMap((group) => group.items);
 }
 
+const noAddress = { street: '', zip: '', city: '', country: '' };
+
+// Folders, organizations, people, equipment and a custom field, created once.
+async function seedReferenceData(url, token) {
+	const missing = async (path, name) => !(await api(url, token, path)).items.some((entry) => entry.name === name);
+	const create = async (path, body) => {
+		const result = await api(url, token, path, json(body));
+		if (!result.success) throw new Error(`POST ${path} failed: ${result.message}`);
+	};
+
+	if (await missing('/sec/folder', SEED_FOLDER)) await create('/sec/folder', { name: SEED_FOLDER });
+	if (await missing('/sec/organization', SEED_ORGANIZATION)) {
+		await create('/sec/organization', { id: '', created: 0, name: SEED_ORGANIZATION, address: noAddress, contacts: [], use: 'correspondent' });
+	}
+	if (await missing('/sec/person', SEED_PERSON)) {
+		await create('/sec/person', { id: '', created: 0, name: SEED_PERSON, address: noAddress, contacts: [], use: 'both' });
+	}
+	if (await missing('/sec/equipment', SEED_EQUIPMENT)) {
+		await create('/sec/equipment', { id: '', created: 0, name: SEED_EQUIPMENT, use: 'concerning' });
+	}
+	if (await missing('/sec/customfield', SEED_CUSTOM_FIELD)) {
+		await create('/sec/customfield', { name: SEED_CUSTOM_FIELD, label: 'E2E Ref', ftype: 'text' });
+	}
+}
+
 export async function seed(url = DOCSPELL_URL) {
 	await waitForServer(url);
 	const token = await registerAndLogin(url);
@@ -86,10 +122,12 @@ export async function seed(url = DOCSPELL_URL) {
 		await api(url, token, '/sec/tag', json({ id: '', created: 0, ...tag }));
 	}
 
+	await seedReferenceData(url, token);
+
 	for (const doc of SEED_DOCUMENTS) {
 		if ((await search(url, token, `name:${doc.name}`)).length > 0) continue;
 		const form = new FormData();
-		form.append('meta', new Blob([JSON.stringify({ multiple: false, tags: { items: [doc.tag] } })], { type: 'application/json' }));
+		form.append('meta', new Blob([JSON.stringify({ multiple: false, tags: { items: doc.tag ? [doc.tag] : [] } })], { type: 'application/json' }));
 		form.append('file', new Blob([doc.text], { type: 'text/plain' }), doc.name);
 		const uploaded = await api(url, token, '/sec/upload/item', { method: 'POST', body: form });
 		if (!uploaded.success) throw new Error(`Upload of ${doc.name} failed: ${uploaded.message}`);
@@ -100,7 +138,7 @@ export async function seed(url = DOCSPELL_URL) {
 	for (;;) {
 		const items = await search(url, token, 'name:*');
 		const ready = SEED_DOCUMENTS.every((doc) =>
-			items.some((item) => item.name === doc.name && item.tags.some((tag) => tag.name === doc.tag)),
+			items.some((item) => item.name === doc.name && (!doc.tag || item.tags.some((tag) => tag.name === doc.tag))),
 		);
 		if (ready) return;
 		if (Date.now() > deadline) {

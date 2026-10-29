@@ -16,6 +16,8 @@ interface Options {
 	inputItems?: INodeExecutionData[];
 	credentials?: Partial<ICredentialDataDecryptedObject>;
 	continueOnFail?: boolean;
+	// Fails matching requests with an HTTP error before they reach Docspell.
+	failWhen?: (request: RecordedRequest) => boolean;
 }
 
 export interface RecordedRequest {
@@ -40,22 +42,33 @@ export function createExecuteContext(options: Options) {
 		const { authenticate } = new DocspellApi();
 		if (typeof authenticate !== 'function') throw new Error('authenticate must be a function');
 		const authenticated = await authenticate(credentials, { ...requestOptions });
+		// n8n's HTTP helper sends no body at all for an empty object.
+		const hasBody =
+			authenticated.body !== undefined &&
+			!(typeof authenticated.body === 'object' && Object.keys(authenticated.body as object).length === 0);
 
 		const base = authenticated.baseURL ? authenticated.baseURL.replace(/\/+$/, '') : '';
 		const query = authenticated.qs
 			? `?${new URLSearchParams(authenticated.qs as Record<string, string>)}`
 			: '';
 		const url = `${base}${authenticated.url}${query}`;
-		requests.push({ method: authenticated.method, url, body: authenticated.body });
+		const recorded = { method: authenticated.method, url, body: authenticated.body };
+		requests.push(recorded);
+		if (options.failWhen?.(recorded)) {
+			throw Object.assign(new Error('Request failed with status code 503'), {
+				httpCode: '503',
+				response: { status: 503, data: 'unavailable' },
+			});
+		}
 
 		const response = await fetch(url, {
 			method: authenticated.method ?? 'GET',
 			headers: {
 				Accept: 'application/json',
-				...(authenticated.body ? { 'Content-Type': 'application/json' } : {}),
+				...(hasBody ? { 'Content-Type': 'application/json' } : {}),
 				...(authenticated.headers as Record<string, string>),
 			},
-			body: authenticated.body ? JSON.stringify(authenticated.body) : undefined,
+			body: hasBody ? JSON.stringify(authenticated.body) : undefined,
 		});
 		const text = await response.text();
 		if (!response.ok) {

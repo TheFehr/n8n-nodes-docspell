@@ -1,0 +1,187 @@
+{
+  "id": "6",
+  "name": "Docspell Item Update",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:update-target.txt",
+        "returnAll": true
+      },
+      "id": "s",
+      "name": "Find target",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "update",
+        "itemId": "={{ $('Find target').first().json.id }}",
+        "updateFields": {
+          "name": "pipeline-renamed.txt",
+          "notes": "set by the pipeline",
+          "direction": "outgoing",
+          "tags": "e2e-invoice",
+          "tagsMode": "add"
+        },
+        "customFields": {
+          "values": [
+            {
+              "field": "e2e-ref",
+              "value": "PIPE-1"
+            }
+          ]
+        }
+      },
+      "id": "u1",
+      "name": "Update the target",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        540,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1) throw new Error('Expected one updated item, got ' + items.length);\nconst item = items[0].json;\nconst tags = (item.tags || []).map((tag) => tag.name);\nconst field = (item.customfields || []).find((entry) => entry.name === 'e2e-ref');\nconst problems = [];\nif (item.name !== 'pipeline-renamed.txt') problems.push('name=' + item.name);\nif (item.notes !== 'set by the pipeline') problems.push('notes=' + item.notes);\nif (item.direction !== 'outgoing') problems.push('direction=' + item.direction);\nif (JSON.stringify(tags) !== JSON.stringify(['e2e-invoice'])) problems.push('tags=' + JSON.stringify(tags));\nif (!field || field.value !== 'PIPE-1') problems.push('custom field=' + JSON.stringify(field));\nif (problems.length) throw new Error('Update did not apply: ' + problems.join('; '));\nreturn [{ json: { verified: 'item updated', id: item.id } }];"
+      },
+      "id": "a1",
+      "name": "Assert update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "update",
+        "itemId": "={{ $('Find target').first().json.id }}",
+        "updateFields": {
+          "name": "update-target.txt",
+          "notes": "",
+          "direction": "incoming",
+          "tags": "",
+          "tagsMode": "replace"
+        }
+      },
+      "id": "u2",
+      "name": "Put the target back",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        980,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst problems = [];\nif (item.name !== 'update-target.txt') problems.push('name=' + item.name);\nif (item.notes) problems.push('notes=' + item.notes);\nif (item.direction !== 'incoming') problems.push('direction=' + item.direction);\nif ((item.tags || []).length !== 0) problems.push('tags=' + JSON.stringify(item.tags));\nif (problems.length) throw new Error('Reset did not apply: ' + problems.join('; '));\nreturn [{ json: { verified: 'item restored' } }];"
+      },
+      "id": "a2",
+      "name": "Assert restored",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find target": {
+      "main": [
+        [
+          {
+            "node": "Update the target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update the target": {
+      "main": [
+        [
+          {
+            "node": "Assert update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assert update": {
+      "main": [
+        [
+          {
+            "node": "Put the target back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Put the target back": {
+      "main": [
+        [
+          {
+            "node": "Assert restored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
