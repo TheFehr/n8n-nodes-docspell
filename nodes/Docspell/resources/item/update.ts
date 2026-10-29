@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest } from '../../../Common/GenericFunctions';
+import { docspellApiRequest, resolveTags, splitList } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['update'] };
 
@@ -203,20 +203,13 @@ export async function executeItemUpdate(
 	}
 
 	if ('tags' in fields) {
-		const wanted = String(fields.tags)
-			.split(',')
-			.map((tag) => tag.trim())
-			.filter((tag) => tag !== '');
+		const wanted = splitList(String(fields.tags));
 		const mode = (fields.tagsMode as string | undefined) ?? 'replace';
 
-		// Docspell silently ignores tags it does not know, so they are resolved here.
-		const known = ((await docspellApiRequest(context, { method: 'GET', endpoint: '/sec/tag' })) as { items: DocspellTag[] }).items;
-		const resolve = (token: string) => known.find((tag) => tag.id === token) ?? known.find((tag) => tag.name === token);
-		const unknown = wanted.filter((token) => !resolve(token));
+		const { ids, unknown } = await resolveTags(context, wanted);
 		if (unknown.length > 0) {
 			throw fail(`Tag${unknown.length > 1 ? 's' : ''} not found in Docspell: ${unknown.map((tag) => `"${tag}"`).join(', ')}`);
 		}
-		const ids = wanted.map((token) => resolve(token)!.id);
 
 		if (mode === 'remove') {
 			if (ids.length > 0) steps.push({ label: 'tags', run: () => put('tags', 'POST', '/tagsremove', { items: ids }) });

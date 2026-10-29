@@ -11,5 +11,8 @@ export {
 	SEED_PERSON,
 	SEED_TAGS,
 	UPDATE_TARGET,
+	UPLOAD_ACCOUNT,
+	UPLOAD_FOLDER,
+	UPLOAD_TAG,
 	USER,
 } from '../scripts/seed-docspell.mjs';

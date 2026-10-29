@@ -10,6 +10,7 @@ import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
 import { executeItemUpdate } from './resources/item/update';
+import { executeItemUpload } from './resources/item/upload';
 
 export class Docspell implements INodeType {
 	description: INodeTypeDescription = {
@@ -60,6 +61,8 @@ export class Docspell implements INodeType {
 					returnData.push(...(await executeItemSearch(this, itemIndex)));
 				} else if (resource === 'item' && operation === 'update') {
 					returnData.push(...(await executeItemUpdate(this, itemIndex)));
+				} else if (resource === 'item' && operation === 'upload') {
+					returnData.push(...(await executeItemUpload(this, itemIndex)));
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unsupported operation: ${resource}/${operation}`, { itemIndex });
 				}
