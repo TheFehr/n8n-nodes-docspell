@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest, resolveTags, splitList } from '../../../Common/GenericFunctions';
+import { docspellApiRequest, resolveTags, splitList, tagTokens } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['upload'] };
 
@@ -147,7 +147,7 @@ export async function executeItemUpload(
 		meta.folder = found.id;
 	}
 
-	const wantedTags = splitList(String(options.tags ?? ''));
+	const wantedTags = tagTokens(options.tags);
 	if (wantedTags.length > 0) {
 		const { names, unknown } = await resolveTags(context, wantedTags);
 		if (unknown.length > 0) {

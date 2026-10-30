@@ -1,6 +1,7 @@
 import type { IDataObject, ILoadOptionsFunctions, INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 import { describe, expect, it } from 'vitest';
 
+import { tagTokens } from '../nodes/Common/GenericFunctions';
 import { Docspell } from '../nodes/Docspell/Docspell.node';
 import { docspell, itemIdByName, referenceId } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
@@ -166,5 +167,40 @@ describe('Values chosen from a picker are accepted by the operations', () => {
 		});
 		const [items] = await node.execute!.call(context);
 		expect(items[0].json.folder).toBeFalsy();
+	});
+});
+
+// A workflow saved before the picker holds "a, b"; the picker holds a list, and an edit of a
+// legacy value can leave a list whose entry is still the whole comma-separated string.
+describe('Tag values are read the same way whatever shape the field holds', () => {
+	it.each([
+		['a plain string', 'e2e-invoice, e2e-contract', ['e2e-invoice', 'e2e-contract']],
+		['a list', ['e2e-invoice', 'e2e-contract'], ['e2e-invoice', 'e2e-contract']],
+		['a list holding a legacy string', ['e2e-invoice, e2e-contract'], ['e2e-invoice', 'e2e-contract']],
+		['a mixed list', ['e2e-invoice', 'e2e-contract,upload-tag'], ['e2e-invoice', 'e2e-contract', 'upload-tag']],
+		['an empty list', [], []],
+		['an empty string', '', []],
+		['nothing', undefined, []],
+		['blank entries', [' ', 'e2e-invoice,, '], ['e2e-invoice']],
+	])('%s', (_label, value, expected) => {
+		expect(tagTokens(value)).toEqual(expected);
+	});
+
+	it('Item > Update applies a legacy string kept inside the picker list', async () => {
+		const id = await itemIdByName(UPDATE_TARGET);
+		const { context } = createExecuteContext({
+			parameters: {
+				resource: 'item',
+				operation: 'update',
+				itemId: id,
+				updateFields: { tags: ['e2e-invoice, e2e-contract'], tagsMode: 'replace' },
+			},
+		});
+		try {
+			const [items] = await node.execute!.call(context);
+			expect((items[0].json.tags as Array<{ name: string }>).map((tag) => tag.name).sort()).toEqual(['e2e-contract', 'e2e-invoice']);
+		} finally {
+			await docspell('PUT', `/sec/item/${id}/tags`, { items: [] });
+		}
 	});
 });

@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest, resolveTags, splitList } from '../../../Common/GenericFunctions';
+import { docspellApiRequest, resolveTags, tagTokens } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['update'] };
 
@@ -244,7 +244,7 @@ export async function executeItemUpdate(
 	}
 
 	if ('tags' in fields) {
-		const wanted = splitList(String(fields.tags));
+		const wanted = tagTokens(fields.tags);
 		const mode = (fields.tagsMode as string | undefined) ?? 'replace';
 
 		const { ids, unknown } = await resolveTags(context, wanted);

@@ -81,6 +81,13 @@ export function splitList(text: string): string[] {
 		.filter((token) => token !== '');
 }
 
+// The tags field holds a list since it became a picker, but a workflow saved before that, or
+// an expression, still gives "a, b". Every entry is split again, so both read the same.
+export function tagTokens(value: unknown): string[] {
+	const entries = Array.isArray(value) ? value : [value];
+	return entries.flatMap((entry) => splitList(entry === undefined || entry === null ? '' : String(entry)));
+}
+
 export interface DownloadedFile {
 	buffer: Buffer;
 	headers: Record<string, string>;
