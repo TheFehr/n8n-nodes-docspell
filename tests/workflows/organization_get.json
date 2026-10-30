@@ -1,0 +1,134 @@
+{
+  "id": "13",
+  "name": "Docspell Organization Get",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "organization",
+        "operation": "getAll",
+        "query": "e2eshort",
+        "returnAll": true
+      },
+      "id": "o1",
+      "name": "Find by short name",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1 || items[0].json.name !== 'e2e-short-org') throw new Error('Unexpected organizations: ' + JSON.stringify(items.map((i) => i.json.name)));\nreturn [{ json: { verified: 'organization found by short name' } }];"
+      },
+      "id": "a1",
+      "name": "Assert one match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "organization",
+        "operation": "get",
+        "organizationId": "={{ $('Find by short name').first().json.id }}"
+      },
+      "id": "o2",
+      "name": "Get it by ID",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        760,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const org = $input.first().json;\nconst problems = [];\nif (org.shortName !== 'e2eshort') problems.push('shortName=' + org.shortName);\nif (org.name !== 'e2e-short-org') problems.push('name=' + org.name);\nif (org.use !== 'correspondent') problems.push('use=' + org.use);\nif (problems.length) throw new Error('Organization detail wrong: ' + problems.join('; '));\nreturn [{ json: { verified: 'organization detail' } }];"
+      },
+      "id": "a2",
+      "name": "Assert short name",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find by short name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find by short name": {
+      "main": [
+        [
+          {
+            "node": "Assert one match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assert one match": {
+      "main": [
+        [
+          {
+            "node": "Get it by ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get it by ID": {
+      "main": [
+        [
+          {
+            "node": "Assert short name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

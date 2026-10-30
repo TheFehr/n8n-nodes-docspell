@@ -28,6 +28,9 @@ export const SEED_TAGS = [
 // Reference data the update tests assign to items.
 export const SEED_FOLDER = 'e2e-folder';
 export const SEED_ORGANIZATION = 'e2e-org';
+// The only organization with a short name, which Item Get and Search do not show.
+export const SEED_SHORT_ORGANIZATION = 'e2e-short-org';
+export const SEED_SHORT_NAME = 'e2eshort';
 export const SEED_PERSON = 'e2e-person';
 export const SEED_EQUIPMENT = 'e2e-device';
 export const SEED_CUSTOM_FIELD = 'e2e-ref';
@@ -114,6 +117,17 @@ async function seedReferenceData(url, token) {
 	if (await missing('/sec/folder', SEED_FOLDER)) await create('/sec/folder', { name: SEED_FOLDER });
 	if (await missing('/sec/organization', SEED_ORGANIZATION)) {
 		await create('/sec/organization', { id: '', created: 0, name: SEED_ORGANIZATION, address: noAddress, contacts: [], use: 'correspondent' });
+	}
+	if (await missing('/sec/organization', SEED_SHORT_ORGANIZATION)) {
+		await create('/sec/organization', {
+			id: '',
+			created: 0,
+			name: SEED_SHORT_ORGANIZATION,
+			shortName: SEED_SHORT_NAME,
+			address: noAddress,
+			contacts: [],
+			use: 'correspondent',
+		});
 	}
 	if (await missing('/sec/person', SEED_PERSON)) {
 		await create('/sec/person', { id: '', created: 0, name: SEED_PERSON, address: noAddress, contacts: [], use: 'both' });
