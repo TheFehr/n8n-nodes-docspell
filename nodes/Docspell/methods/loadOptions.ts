@@ -14,8 +14,9 @@ async function entries(context: ILoadOptionsFunctions, endpoint: string): Promis
 }
 
 // Docspell lists everything by name already.
-// A single-choice field removes its value when left empty, so that has to be a choice too.
-const none: INodePropertyOptions = { name: 'None (Remove)', value: '' };
+// A single-choice field is empty unless one is chosen, so empty has to be a choice too. Update
+// reads it as "remove" (its descriptions say so); Upload as "none".
+const none: INodePropertyOptions = { name: 'None', value: '' };
 
 async function pickOne(context: ILoadOptionsFunctions, endpoint: string): Promise<INodePropertyOptions[]> {
 	const options = (await entries(context, endpoint)).map(({ id, name }) => ({ name, value: id }));
