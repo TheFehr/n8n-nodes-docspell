@@ -60,7 +60,7 @@ describe('Pickers load their choices from Docspell', () => {
 	] as const)('%s offers "None" first, then the entries by name with their ID', async (method, name, kind, other) => {
 		const options = await load(method);
 		expect(options[0]).toMatchObject({ value: '' });
-		expect(options[0].name).toMatch(/none/i);
+		expect(options[0].name).toBe('None');
 		const entry = options.find((option) => option.name === name);
 		expect(entry?.value).toBe(await referenceId(kind, name));
 		if (other) expect(options.map((option) => option.name)).not.toContain(other);
