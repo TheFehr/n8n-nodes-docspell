@@ -2,7 +2,7 @@ import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodePropertie
 import { NodeOperationError } from 'n8n-workflow';
 
 import { dateBody, docspellApiRequest, hasMissingTag, resolveTags, rethrowWithApplied, tagTokens } from '../../../Common/GenericFunctions';
-import { customFieldsProperty, ENDPOINT_OF, LABEL_OF, updateFieldOptions } from './update';
+import { customFieldsProperty, ENDPOINT_OF, LABEL_OF, removeCustomFieldsProperty, updateFieldOptions } from './update';
 
 const show = { resource: ['item'], operation: ['updateMany'] };
 
@@ -29,16 +29,7 @@ export const itemUpdateManyDescription: INodeProperties[] = [
 		options: updateFieldOptions.filter((option) => option.name !== 'notes'),
 	},
 	customFieldsProperty('bulkCustomFields', show),
-	{
-		displayName: 'Remove Custom Field Names or IDs',
-		name: 'removeCustomFields',
-		type: 'multiOptions',
-		typeOptions: { loadOptionsMethod: 'getCustomFields' },
-		default: [],
-		description:
-			'Custom fields whose value is removed from every item. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-		displayOptions: { show },
-	},
+	removeCustomFieldsProperty(show),
 ];
 
 // "a, b\nc" -> a, b, c, each once.

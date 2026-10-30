@@ -193,6 +193,74 @@ describe('Item > Update against a real Docspell', () => {
 				/no-such-field/,
 			);
 		});
+
+		describe('removing', () => {
+			const withValue = async (id: string) => {
+				await docspell('PUT', `/sec/item/${id}/customfield`, { field: SEED_CUSTOM_FIELD, value: 'to remove' });
+			};
+
+			it('removes a custom field by name and returns the item without it', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await withValue(id);
+
+				const { items } = await update(id, {}, { removeCustomFields: [SEED_CUSTOM_FIELD] });
+
+				expect(items[0].json.customfields).toEqual([]);
+				expect((await getItem(id)).customfields).toEqual([]);
+			});
+
+			it('leaves the other fields alone', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await docspell('POST', '/sec/customfield', { name: 'e2e-other', label: 'Other', ftype: 'text' });
+				try {
+					await withValue(id);
+					await docspell('PUT', `/sec/item/${id}/customfield`, { field: 'e2e-other', value: 'keep' });
+
+					const { items } = await update(id, {}, { removeCustomFields: [SEED_CUSTOM_FIELD] });
+
+					expect(items[0].json.customfields).toEqual([expect.objectContaining({ name: 'e2e-other', value: 'keep' })]);
+				} finally {
+					const other = (await docspell('GET', '/sec/customfield')).items.find((field: { name: string }) => field.name === 'e2e-other');
+					await docspell('DELETE', `/sec/item/${id}/customfield/${other.id}`).catch(() => undefined);
+					await docspell('DELETE', `/sec/customfield/${other.id}`).catch(() => undefined);
+				}
+			});
+
+			it('is fine when the item does not have the field', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				const { items } = await update(id, {}, { removeCustomFields: [SEED_CUSTOM_FIELD] });
+				expect(items[0].json.customfields).toEqual([]);
+			});
+
+			it('can be combined with other changes', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await withValue(id);
+
+				const { items } = await update(id, { name: 'combined.txt' }, { removeCustomFields: [SEED_CUSTOM_FIELD] });
+
+				expect(items[0].json).toMatchObject({ name: 'combined.txt', customfields: [] });
+			});
+
+			it('names a field that Docspell does not know, before changing anything', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await expect(update(id, { name: 'never.txt' }, { removeCustomFields: ['no-such-field'] })).rejects.toThrow(
+					'Custom field not found in Docspell: "no-such-field"',
+				);
+				expect((await getItem(id)).name).toBe(UPDATE_TARGET);
+			});
+
+			it('refuses to set and remove the same field', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await expect(
+					update(id, {}, { customFields: { values: [{ field: SEED_CUSTOM_FIELD, value: 'x' }] }, removeCustomFields: [SEED_CUSTOM_FIELD] }),
+				).rejects.toThrow('both set and removed');
+			});
+
+			it('counts as a change on its own', async () => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				await expect(update(id, {}, { removeCustomFields: [] })).rejects.toThrow('Choose at least one field to update');
+			});
+		});
 	});
 
 	describe('failures', () => {

@@ -112,6 +112,17 @@ export const customFieldsProperty = (name: string, show: Record<string, string[]
 	],
 });
 
+export const removeCustomFieldsProperty = (show: Record<string, string[]>): INodeProperties => ({
+	displayName: 'Remove Custom Field Names or IDs',
+	name: 'removeCustomFields',
+	type: 'multiOptions',
+	typeOptions: { loadOptionsMethod: 'getCustomFields' },
+	default: [],
+	description:
+		'Custom fields whose value is removed. An item that does not have the field is left as it is. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	displayOptions: { show },
+});
+
 export const itemUpdateDescription: INodeProperties[] = [
 	{
 		displayName: 'Item ID',
@@ -133,6 +144,7 @@ export const itemUpdateDescription: INodeProperties[] = [
 		options: updateFieldOptions,
 	},
 	customFieldsProperty('customFields', show),
+	removeCustomFieldsProperty(show),
 ];
 
 // An empty object would be sent as no body at all, which Docspell answers with a 500,
@@ -140,6 +152,11 @@ export const itemUpdateDescription: INodeProperties[] = [
 interface Step {
 	label: string;
 	run: () => Promise<void>;
+}
+
+interface Named {
+	id: string;
+	name: string;
 }
 
 interface DocspellTag {
@@ -176,7 +193,8 @@ export async function executeItemUpdate(
 		(context.getNodeParameter('customFields', itemIndex, {}) as { values?: Array<{ field: string; value: string }> })
 			.values ?? []
 	).filter((entry) => entry.field.trim() !== '');
-	if (Object.keys(fields).length === 0 && customFields.length === 0) {
+	const removeCustomFields = tagTokens(context.getNodeParameter('removeCustomFields', itemIndex, []));
+	if (Object.keys(fields).length === 0 && customFields.length === 0 && removeCustomFields.length === 0) {
 		throw fail('Choose at least one field to update');
 	}
 
@@ -185,11 +203,28 @@ export async function executeItemUpdate(
 	if ('tags' in fields && hasMissingTag(fields.tags)) {
 		throw fail('The tags value is empty (null or undefined). Leave the field empty to remove all tags.');
 	}
+	const alsoSet = removeCustomFields.filter((name) => customFields.some((entry) => entry.field.trim() === name));
+	if (alsoSet.length > 0) {
+		throw fail(`Custom field ${alsoSet.map((name) => `"${name}"`).join(', ')} is both set and removed`);
+	}
+	const fieldsToRemove: Named[] = [];
+	if (removeCustomFields.length > 0) {
+		const known = ((await docspellApiRequest(context, { method: 'GET', endpoint: '/sec/customfield' })) as { items: Named[] }).items;
+		const unknown: string[] = [];
+		for (const token of removeCustomFields) {
+			const field = known.find((candidate) => candidate.name === token || candidate.id === token);
+			if (field) fieldsToRemove.push(field);
+			else unknown.push(token);
+		}
+		if (unknown.length > 0) {
+			throw fail(`Custom field${unknown.length > 1 ? 's' : ''} not found in Docspell: ${unknown.map((name) => `"${name}"`).join(', ')}`);
+		}
+	}
 	const itemDate = 'itemDate' in fields ? dateBody('Item Date', fields.itemDate, fail) : undefined;
 	const dueDate = 'dueDate' in fields ? dateBody('Due Date', fields.dueDate, fail) : undefined;
 
 	const applied: string[] = [];
-	const put = async (label: string, method: 'PUT' | 'POST', endpoint: string, body: IDataObject) => {
+	const put = async (label: string, method: 'PUT' | 'POST' | 'DELETE', endpoint: string, body: IDataObject) => {
 		const result = await docspellApiRequest(context, { method, endpoint: `${itemPath}${endpoint}`, body });
 		if (result.success === false) {
 			const reason = result.message === 'Not found' ? `item "${itemId}" was not found` : String(result.message);
@@ -251,6 +286,20 @@ export async function executeItemUpdate(
 	for (const { field, value } of customFields) {
 		const label = `custom field "${field.trim()}"`;
 		steps.push({ label, run: () => put(label, 'PUT', '/customfield', { field: field.trim(), value }) });
+	}
+
+	for (const field of fieldsToRemove) {
+		const label = `removal of custom field "${field.name}"`;
+		steps.push({
+			label,
+			run: async () => {
+				// Only a field the item carries can be removed; Docspell answers any other with "Not found".
+				const current = (await docspellApiRequest(context, { method: 'GET', endpoint: itemPath })) as { customfields?: Named[] };
+				if ((current.customfields ?? []).some((entry) => entry.id === field.id)) {
+					await put(label, 'DELETE', `/customfield/${encodeURIComponent(field.id)}`, {});
+				}
+			},
+		});
 	}
 
 	let item: IDataObject;
