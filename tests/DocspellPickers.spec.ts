@@ -1,7 +1,7 @@
 import type { IDataObject, ILoadOptionsFunctions, INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 import { describe, expect, it } from 'vitest';
 
-import { tagTokens } from '../nodes/Common/GenericFunctions';
+import { hasMissingTag, tagTokens } from '../nodes/Common/GenericFunctions';
 import { Docspell } from '../nodes/Docspell/Docspell.node';
 import { docspell, itemIdByName, referenceId } from './docspellApi';
 import { createExecuteContext } from './fakeExecuteContext';
@@ -202,5 +202,51 @@ describe('Tag values are read the same way whatever shape the field holds', () =
 		} finally {
 			await docspell('PUT', `/sec/item/${id}/tags`, { items: [] });
 		}
+	});
+});
+
+// An expression that resolves to nothing must not read as "no tags": in Replace mode that would
+// strip every tag from the item.
+describe('A missing tag value is an error, not an empty list', () => {
+	it.each([
+		['null', null, true],
+		['undefined', undefined, true],
+		['a null entry', ['e2e-invoice', null], true],
+		['an undefined entry', [undefined], true],
+		['an empty list', [], false],
+		['an empty string', '', false],
+		['a list of names', ['e2e-invoice'], false],
+	])('%s', (_label, value, missing) => {
+		expect(hasMissingTag(value)).toBe(missing);
+	});
+
+	it.each([
+		['null', null],
+		['undefined', undefined],
+		['a null entry', [null]],
+		['an undefined entry', [undefined]],
+	])('Item > Update with %s leaves the tags alone', async (_label, tags) => {
+		const id = await itemIdByName(UPDATE_TARGET);
+		await docspell('PUT', `/sec/item/${id}/tags`, { items: [(await load('getTags')).find((o) => o.name === 'e2e-invoice')!.value] });
+		try {
+			const { context, requests } = createExecuteContext({
+				parameters: { resource: 'item', operation: 'update', itemId: id, updateFields: { tags, tagsMode: 'replace' } },
+			});
+			await expect(node.execute!.call(context)).rejects.toThrow(/tags.*(empty|missing|null)/i);
+			expect(requests.filter((request) => request.method !== 'GET')).toEqual([]);
+			expect((await docspell('GET', `/sec/item/${id}`)).tags.map((tag: { name: string }) => tag.name)).toEqual(['e2e-invoice']);
+		} finally {
+			await docspell('PUT', `/sec/item/${id}/tags`, { items: [] });
+		}
+	});
+
+	it('Item > Upload with a null tag value is an error before anything is sent', async () => {
+		const { context, requests } = createExecuteContext({
+			credentials: { account: UPLOAD_ACCOUNT },
+			inputItems: [{ json: {}, binary: { data: { data: Buffer.from('x').toString('base64'), fileName: 'x.txt', mimeType: 'text/plain' } } }],
+			parameters: { resource: 'item', operation: 'upload', binaryPropertyName: 'data', options: { tags: [null] } },
+		});
+		await expect(node.execute!.call(context)).rejects.toThrow(/tags.*(empty|missing|null)/i);
+		expect(requests.filter((request) => request.method === 'POST')).toEqual([]);
 	});
 });

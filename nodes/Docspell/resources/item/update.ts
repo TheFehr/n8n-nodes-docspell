@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest, resolveTags, tagTokens } from '../../../Common/GenericFunctions';
+import { docspellApiRequest, hasMissingTag, resolveTags, tagTokens } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['update'] };
 
@@ -176,6 +176,9 @@ export async function executeItemUpdate(
 
 	// Everything that can be checked without Docspell is checked before the first change.
 	if ('name' in fields && String(fields.name).trim() === '') throw fail('The name cannot be empty');
+	if ('tags' in fields && hasMissingTag(fields.tags)) {
+		throw fail('The tags value is empty (null or undefined). Leave the field empty to remove all tags.');
+	}
 	const dateBody = (label: string, value: unknown): IDataObject => {
 		if (value === '' || value === undefined || value === null) return { date: null };
 		const text = String(value);

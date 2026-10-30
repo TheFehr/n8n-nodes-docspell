@@ -88,6 +88,12 @@ export function tagTokens(value: unknown): string[] {
 	return entries.flatMap((entry) => splitList(entry === undefined || entry === null ? '' : String(entry)));
 }
 
+// An expression that resolves to nothing is not "no tags": read as an empty list it would make
+// Replace remove every tag. Only [] and '' mean none.
+export function hasMissingTag(value: unknown): boolean {
+	return (Array.isArray(value) ? value : [value]).some((entry) => entry === undefined || entry === null);
+}
+
 export interface DownloadedFile {
 	buffer: Buffer;
 	headers: Record<string, string>;
