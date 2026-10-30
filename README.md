@@ -29,6 +29,11 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 - **Download**: download the file of an attachment as binary data, ready for other nodes (save it, send it, attach it). Take the attachment ID from the `attachments` of Item > Get or of a Search with details. Choose the version: the file as Docspell shows it (the converted PDF where there is one), the original upload, the archive, or the preview image. The file is kept byte for byte. It is read into memory as a whole, so very large files need that much memory in n8n.
 
+**Organization**
+
+- **Get**: fetch one organization by its ID, including its short name, address and contacts. An item only carries the ID and name of its correspondent organization, so use this to get the rest.
+- **Get Many**: list the organizations. The filter matches the name or short name. Returns one n8n item per organization.
+
 More operations are planned.
 
 ## Credentials

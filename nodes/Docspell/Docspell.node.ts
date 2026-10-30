@@ -14,6 +14,9 @@ import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
 import { executeItemUpdate } from './resources/item/update';
 import { executeItemUpload } from './resources/item/upload';
+import { organizationDescription } from './resources/organization';
+import { executeOrganizationGet } from './resources/organization/get';
+import { executeOrganizationGetAll } from './resources/organization/getAll';
 
 export class Docspell implements INodeType {
 	description: INodeTypeDescription = {
@@ -45,11 +48,13 @@ export class Docspell implements INodeType {
 				options: [
 					{ name: 'Attachment', value: 'attachment' },
 					{ name: 'Item', value: 'item' },
+					{ name: 'Organization', value: 'organization' },
 				],
 				default: 'item',
 			},
 			...attachmentDescription,
 			...itemDescription,
+			...organizationDescription,
 		],
 	};
 
@@ -74,6 +79,10 @@ export class Docspell implements INodeType {
 					returnData.push(...(await executeItemUpload(this, itemIndex)));
 				} else if (resource === 'attachment' && operation === 'download') {
 					returnData.push(...(await executeAttachmentDownload(this, itemIndex)));
+				} else if (resource === 'organization' && operation === 'get') {
+					returnData.push(...(await executeOrganizationGet(this, itemIndex)));
+				} else if (resource === 'organization' && operation === 'getAll') {
+					returnData.push(...(await executeOrganizationGetAll(this, itemIndex)));
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unsupported operation: ${resource}/${operation}`, { itemIndex });
 				}
