@@ -6,7 +6,7 @@ import type {
 	ILoadOptionsFunctions,
 	JsonObject,
 } from 'n8n-workflow';
-import { NodeApiError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 interface DocspellRequest {
 	method: IHttpRequestMethods;
@@ -130,4 +130,37 @@ export async function docspellDownload(
 			message: statusMessages[status],
 		});
 	}
+}
+
+// Docspell takes a date as epoch milliseconds, or null to remove it. A day that does not exist
+// (February 30) is an error, where Date would roll it over into the next month.
+export function dateBody(label: string, value: unknown, fail: (message: string) => Error): IDataObject {
+	if (value === '' || value === undefined || value === null) return { date: null };
+	const text = String(value);
+	const time = new Date(text).getTime();
+	if (Number.isNaN(time)) throw fail(`${label} "${text}" is not a valid date`);
+	const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(text.trim());
+	if (day) {
+		const [year, month, date] = day.slice(1).map(Number);
+		const check = new Date(Date.UTC(year, month - 1, date));
+		if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== date) {
+			throw fail(`${label} "${text}" is not a valid date`);
+		}
+	}
+	return { date: time };
+}
+
+// An error after the first change still has to say what was already changed.
+export function rethrowWithApplied(applied: string[], error: unknown, fail: (message: string) => Error): never {
+	if (applied.length === 0) throw error;
+	const note = `already applied: ${applied.join(', ')}`;
+	if (error instanceof NodeApiError || error instanceof NodeOperationError) {
+		if (!`${error.message} ${error.description ?? ''}`.includes('already applied')) {
+			// Continue On Fail outputs only the message; the UI shows the description.
+			error.message = `${error.message} (${note})`;
+			error.description = error.description ? `${error.description} (${note})` : note;
+		}
+		throw error;
+	}
+	throw fail(`${error instanceof Error ? error.message : String(error)} (${note})`);
 }

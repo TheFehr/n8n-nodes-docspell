@@ -1,0 +1,202 @@
+{
+  "id": "15",
+  "name": "Docspell Item Update Many",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "(| name:\"update-target.txt\" name:\"bulk-target.txt\" )",
+        "returnAll": true
+      },
+      "id": "s",
+      "name": "Find the scratch items",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $input.all().map((i) => i.json.id);\nif (ids.length !== 2) throw new Error('Expected two scratch items, found ' + ids.length);\nreturn [{ json: { ids: ids.join(',') } }];"
+      },
+      "id": "c",
+      "name": "Collect the IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "updateMany",
+        "itemIds": "={{ $json.ids }}",
+        "bulkFields": {
+          "direction": "outgoing",
+          "folder": "e2e-folder",
+          "tags": [
+            "e2e-invoice"
+          ],
+          "tagsMode": "add"
+        }
+      },
+      "id": "u",
+      "name": "Update both",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        760,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst problems = [];\nif (items.length !== 2) problems.push('items=' + items.length);\nfor (const { json } of items) {\n  if (json.direction !== 'outgoing') problems.push(json.name + ' direction=' + json.direction);\n  if (!json.folder || json.folder.name !== 'e2e-folder') problems.push(json.name + ' folder=' + JSON.stringify(json.folder));\n  if (!(json.tags || []).some((t) => t.name === 'e2e-invoice')) problems.push(json.name + ' has no tag');\n}\nif (problems.length) throw new Error('Bulk update wrong: ' + problems.join('; '));\nreturn [{ json: { verified: 'items updated together' } }];"
+      },
+      "id": "a1",
+      "name": "Assert changed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "updateMany",
+        "itemIds": "={{ $('Collect the IDs').first().json.ids }}",
+        "bulkFields": {
+          "direction": "incoming",
+          "folder": "",
+          "tags": []
+        }
+      },
+      "id": "b",
+      "name": "Put both back",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst problems = [];\nif (items.length !== 2) problems.push('items=' + items.length);\nfor (const { json } of items) {\n  if (json.direction !== 'incoming') problems.push(json.name + ' direction=' + json.direction);\n  if (json.folder) problems.push(json.name + ' still in a folder');\n  if ((json.tags || []).length) problems.push(json.name + ' still has tags');\n}\nif (problems.length) throw new Error('Restore wrong: ' + problems.join('; '));\nreturn [{ json: { verified: 'items restored together' } }];"
+      },
+      "id": "a2",
+      "name": "Assert restored",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find the scratch items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find the scratch items": {
+      "main": [
+        [
+          {
+            "node": "Collect the IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect the IDs": {
+      "main": [
+        [
+          {
+            "node": "Update both",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update both": {
+      "main": [
+        [
+          {
+            "node": "Assert changed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assert changed": {
+      "main": [
+        [
+          {
+            "node": "Put both back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Put both back": {
+      "main": [
+        [
+          {
+            "node": "Assert restored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
