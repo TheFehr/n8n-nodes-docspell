@@ -10,7 +10,7 @@ if command -v fnm &>/dev/null; then
 fi
 
 COMPOSE="docker compose -f docker-compose.test.yml"
-OUTPUT_FILES="attachment_output.txt attachment_not_found_output.txt upload_output.txt upload_no_file_output.txt workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
+OUTPUT_FILES="pickers_output.txt attachment_output.txt attachment_not_found_output.txt upload_output.txt upload_no_file_output.txt workflow_output.txt update_output.txt update_not_found_output.txt get_output.txt bad_query_output.txt bad_credentials_output.txt not_found_output.txt"
 
 on_exit() {
 	EXIT_CODE=$?
@@ -66,6 +66,7 @@ run_in_n8n "
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_get_not_found.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update_not_found.json && \
+  n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_update_pickers.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/item_upload_no_file.json && \
   n8n import:workflow --input=/home/node/custom-nodes/tests/workflows/attachment_download.json && \
@@ -116,6 +117,17 @@ if ! grep -q '"status": *"success"' update_output.txt; then
 fi
 require_markers update_output.txt "Item Update workflow" "item updated" "item restored"
 echo "✅ Item Update workflow succeeded (Search -> Update -> Update back, asserted after each)"
+
+run_in_n8n "n8n execute --id=12" > pickers_output.txt 2>&1 || {
+	echo "❌ The Item Update (pickers) workflow did not run to completion"
+	exit 1
+}
+if ! grep -q '"status": *"success"' pickers_output.txt; then
+	echo "❌ The Item Update (pickers) workflow did not finish with status success"
+	exit 1
+fi
+require_markers pickers_output.txt "Item Update (pickers) workflow" "picker values applied" "pickers cleared"
+echo "✅ Item Update accepts what the pickers produce (an ID list for tags, a folder, and empty values)"
 
 run_in_n8n "n8n execute --id=8" > upload_output.txt 2>&1 || {
 	echo "❌ The Item Upload workflow did not run to completion"

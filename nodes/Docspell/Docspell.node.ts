@@ -8,6 +8,7 @@ import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workf
 
 import { attachmentDescription } from './resources/attachment';
 import { executeAttachmentDownload } from './resources/attachment/download';
+import { loadOptions } from './methods/loadOptions';
 import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
@@ -51,6 +52,8 @@ export class Docspell implements INodeType {
 			...itemDescription,
 		],
 	};
+
+	methods = { loadOptions };
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const inputItems = this.getInputData();

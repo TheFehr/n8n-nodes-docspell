@@ -1,0 +1,210 @@
+{
+  "id": "12",
+  "name": "Docspell Item Update With Pickers",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:invoice-alpha.txt",
+        "returnAll": true,
+        "options": {
+          "withDetails": true
+        }
+      },
+      "id": "s1",
+      "name": "Find the tag source",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:update-target.txt",
+        "returnAll": true
+      },
+      "id": "s2",
+      "name": "Find target",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        540,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "update",
+        "itemId": "={{ $('Find target').first().json.id }}",
+        "updateFields": {
+          "folder": "e2e-folder",
+          "tags": "={{ [$('Find the tag source').first().json.tags[0].id] }}",
+          "tagsMode": "replace"
+        }
+      },
+      "id": "u1",
+      "name": "Update with picker values",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        760,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst tags = (item.tags || []).map((tag) => tag.name);\nconst problems = [];\nif (JSON.stringify(tags) !== JSON.stringify(['e2e-invoice'])) problems.push('tags=' + JSON.stringify(tags));\nif (!item.folder || item.folder.name !== 'e2e-folder') problems.push('folder=' + JSON.stringify(item.folder));\nif (problems.length) throw new Error('Picker values did not apply: ' + problems.join('; '));\nreturn [{ json: { verified: 'picker values applied' } }];"
+      },
+      "id": "a1",
+      "name": "Assert picked",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "update",
+        "itemId": "={{ $('Find target').first().json.id }}",
+        "updateFields": {
+          "folder": "",
+          "tags": [],
+          "tagsMode": "replace"
+        }
+      },
+      "id": "u2",
+      "name": "Clear with empty pickers",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst problems = [];\nif ((item.tags || []).length !== 0) problems.push('tags=' + JSON.stringify(item.tags));\nif (item.folder) problems.push('folder=' + JSON.stringify(item.folder));\nif (problems.length) throw new Error('Empty pickers did not clear: ' + problems.join('; '));\nreturn [{ json: { verified: 'pickers cleared' } }];"
+      },
+      "id": "a2",
+      "name": "Assert cleared",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find the tag source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find the tag source": {
+      "main": [
+        [
+          {
+            "node": "Find target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find target": {
+      "main": [
+        [
+          {
+            "node": "Update with picker values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update with picker values": {
+      "main": [
+        [
+          {
+            "node": "Assert picked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assert picked": {
+      "main": [
+        [
+          {
+            "node": "Clear with empty pickers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear with empty pickers": {
+      "main": [
+        [
+          {
+            "node": "Assert cleared",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

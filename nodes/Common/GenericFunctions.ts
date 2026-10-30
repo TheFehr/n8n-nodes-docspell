@@ -1,4 +1,11 @@
-import type { IDataObject, IExecuteFunctions, IHttpRequestMethods, IHttpRequestOptions, JsonObject } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IExecuteFunctions,
+	IHttpRequestMethods,
+	IHttpRequestOptions,
+	ILoadOptionsFunctions,
+	JsonObject,
+} from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
 interface DocspellRequest {
@@ -12,7 +19,7 @@ interface DocspellRequest {
 export type StatusMessages = Partial<Record<number, string>>;
 
 export async function docspellApiRequest(
-	context: IExecuteFunctions,
+	context: IExecuteFunctions | ILoadOptionsFunctions,
 	{ method, endpoint, body, qs }: DocspellRequest,
 	statusMessages: StatusMessages = {},
 ): Promise<IDataObject> {
