@@ -38,6 +38,9 @@ export const SEED_CUSTOM_FIELD = 'e2e-ref';
 // The update tests change this item and put it back; it carries no tag.
 export const UPDATE_TARGET = 'update-target.txt';
 
+// The bulk tests change this item together with the one above, and put both back.
+export const BULK_TARGET = 'bulk-target.txt';
+
 // Bytes that are not valid UTF-8, to prove that a download is not decoded as text on the way.
 export const LATIN1_DOCUMENT = 'latin1-sample.txt';
 export const LATIN1_BYTES = Uint8Array.from([0x4d, 0xfc, 0x6c, 0x6c, 0x65, 0x72, 0x20, 0xe4, 0xf6, 0xff, 0x0a]);
@@ -47,6 +50,7 @@ export const SEED_DOCUMENTS = [
 	{ name: 'invoice-beta.txt', tag: 'e2e-invoice', text: 'Invoice beta from zebrafruit GmbH. Total 250 CHF.' },
 	{ name: 'contract-gamma.txt', tag: 'e2e-contract', text: 'Contract gamma between the parties, signed in Bern.' },
 	{ name: UPDATE_TARGET, tag: null, text: 'A scratch document that the update tests edit.' },
+	{ name: BULK_TARGET, tag: null, text: 'A second scratch document, for the tests that change two items at once.' },
 	{ name: LATIN1_DOCUMENT, tag: null, bytes: LATIN1_BYTES },
 ];
 

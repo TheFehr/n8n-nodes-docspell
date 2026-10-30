@@ -13,6 +13,7 @@ import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
 import { executeItemUpdate } from './resources/item/update';
+import { executeItemUpdateMany } from './resources/item/updateMany';
 import { executeItemUpload } from './resources/item/upload';
 import { organizationDescription } from './resources/organization';
 import { executeOrganizationGet } from './resources/organization/get';
@@ -75,6 +76,8 @@ export class Docspell implements INodeType {
 					returnData.push(...(await executeItemSearch(this, itemIndex)));
 				} else if (resource === 'item' && operation === 'update') {
 					returnData.push(...(await executeItemUpdate(this, itemIndex)));
+				} else if (resource === 'item' && operation === 'updateMany') {
+					returnData.push(...(await executeItemUpdateMany(this, itemIndex)));
 				} else if (resource === 'item' && operation === 'upload') {
 					returnData.push(...(await executeItemUpload(this, itemIndex)));
 				} else if (resource === 'attachment' && operation === 'download') {

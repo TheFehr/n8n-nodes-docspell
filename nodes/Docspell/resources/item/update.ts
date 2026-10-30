@@ -1,9 +1,116 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
-import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest, hasMissingTag, resolveTags, tagTokens } from '../../../Common/GenericFunctions';
+import { dateBody, docspellApiRequest, hasMissingTag, resolveTags, rethrowWithApplied, tagTokens } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['update'] };
+
+// Shared with Update Many, which has no notes endpoint and leaves that one out.
+export const updateFieldOptions: INodeProperties[] = [
+	{
+		displayName: 'Concerning Equipment Name or ID',
+		name: 'concEquipment',
+		type: 'options',
+		typeOptions: { loadOptionsMethod: 'getEquipment' },
+		default: '',
+		description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Concerning Person Name or ID',
+		name: 'concPerson',
+		type: 'options',
+		typeOptions: { loadOptionsMethod: 'getPersons' },
+		default: '',
+		description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Correspondent Organization Name or ID',
+		name: 'corrOrg',
+		type: 'options',
+		typeOptions: { loadOptionsMethod: 'getOrganizations' },
+		default: '',
+		description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Correspondent Person Name or ID',
+		name: 'corrPerson',
+		type: 'options',
+		typeOptions: { loadOptionsMethod: 'getPersons' },
+		default: '',
+		description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Direction',
+		name: 'direction',
+		type: 'options',
+		default: 'incoming',
+		options: [
+			{ name: 'Incoming', value: 'incoming' },
+			{ name: 'Outgoing', value: 'outgoing' },
+		],
+	},
+	{ displayName: 'Due Date', name: 'dueDate', type: 'dateTime', default: '', description: 'Leave empty to remove' },
+	{
+		displayName: 'Folder Name or ID',
+		name: 'folder',
+		type: 'options',
+		typeOptions: { loadOptionsMethod: 'getFolders' },
+		default: '',
+		description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{ displayName: 'Item Date', name: 'itemDate', type: 'dateTime', default: '', description: 'Leave empty to remove' },
+	{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'The new name of the item. It cannot be empty.' },
+	{ displayName: 'Notes', name: 'notes', type: 'string', typeOptions: { rows: 4 }, default: '', description: 'Leave empty to remove the notes' },
+	{
+		displayName: 'Tag Names or IDs',
+		name: 'tags',
+		type: 'multiOptions',
+		typeOptions: { loadOptionsMethod: 'getTags' },
+		default: [],
+		description: 'A tag that does not exist is an error. With Replace, choosing none removes all tags. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Tags Mode',
+		name: 'tagsMode',
+		type: 'options',
+		default: 'replace',
+		description: 'What to do with the tags listed under Tags',
+		options: [
+			{ name: 'Replace', value: 'replace', description: 'The item gets exactly these tags' },
+			{ name: 'Add', value: 'add', description: 'Keep the current tags and add these' },
+			{ name: 'Remove', value: 'remove', description: 'Remove only these tags' },
+		],
+	},
+];
+
+// Built by a function so Update and Update Many share it without repeating the picker.
+export const customFieldsProperty = (name: string, show: Record<string, string[]>): INodeProperties => ({
+	displayName: 'Custom Fields',
+	name,
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Custom Field',
+	default: {},
+	description: 'Custom fields to set. The field must already exist in Docspell.',
+	displayOptions: { show },
+	options: [
+		{
+			displayName: 'Field',
+			name: 'values',
+			values: [
+				{
+					displayName: 'Field Name or ID',
+					name: 'field',
+					type: 'options',
+					typeOptions: { loadOptionsMethod: 'getCustomFields' },
+					default: '',
+					description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				},
+				{ displayName: 'Value', name: 'value', type: 'string', default: '' },
+			],
+		},
+	],
+});
 
 export const itemUpdateDescription: INodeProperties[] = [
 	{
@@ -23,110 +130,9 @@ export const itemUpdateDescription: INodeProperties[] = [
 		default: {},
 		description: 'Only the fields added here are changed. Where noted, an empty value removes the current one.',
 		displayOptions: { show },
-		options: [
-			{
-				displayName: 'Concerning Equipment Name or ID',
-				name: 'concEquipment',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getEquipment' },
-				default: '',
-				description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Concerning Person Name or ID',
-				name: 'concPerson',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getPersons' },
-				default: '',
-				description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Correspondent Organization Name or ID',
-				name: 'corrOrg',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getOrganizations' },
-				default: '',
-				description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Correspondent Person Name or ID',
-				name: 'corrPerson',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getPersons' },
-				default: '',
-				description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Direction',
-				name: 'direction',
-				type: 'options',
-				default: 'incoming',
-				options: [
-					{ name: 'Incoming', value: 'incoming' },
-					{ name: 'Outgoing', value: 'outgoing' },
-				],
-			},
-			{ displayName: 'Due Date', name: 'dueDate', type: 'dateTime', default: '', description: 'Leave empty to remove' },
-			{
-				displayName: 'Folder Name or ID',
-				name: 'folder',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getFolders' },
-				default: '',
-				description: 'None removes the current one. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{ displayName: 'Item Date', name: 'itemDate', type: 'dateTime', default: '', description: 'Leave empty to remove' },
-			{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'The new name of the item. It cannot be empty.' },
-			{ displayName: 'Notes', name: 'notes', type: 'string', typeOptions: { rows: 4 }, default: '', description: 'Leave empty to remove the notes' },
-			{
-				displayName: 'Tag Names or IDs',
-				name: 'tags',
-				type: 'multiOptions',
-				typeOptions: { loadOptionsMethod: 'getTags' },
-				default: [],
-				description: 'A tag that does not exist is an error. With Replace, choosing none removes all tags. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Tags Mode',
-				name: 'tagsMode',
-				type: 'options',
-				default: 'replace',
-				description: 'What to do with the tags listed under Tags',
-				options: [
-					{ name: 'Replace', value: 'replace', description: 'The item gets exactly these tags' },
-					{ name: 'Add', value: 'add', description: 'Keep the current tags and add these' },
-					{ name: 'Remove', value: 'remove', description: 'Remove only these tags' },
-				],
-			},
-		],
+		options: updateFieldOptions,
 	},
-	{
-		displayName: 'Custom Fields',
-		name: 'customFields',
-		type: 'fixedCollection',
-		typeOptions: { multipleValues: true },
-		placeholder: 'Add Custom Field',
-		default: {},
-		description: 'Custom fields to set on the item. The field must already exist in Docspell.',
-		displayOptions: { show },
-		options: [
-			{
-				displayName: 'Field',
-				name: 'values',
-				values: [
-					{
-							displayName: 'Field Name or ID',
-							name: 'field',
-							type: 'options',
-							typeOptions: { loadOptionsMethod: 'getCustomFields' },
-							default: '',
-							description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
-						},
-					{ displayName: 'Value', name: 'value', type: 'string', default: '' },
-				],
-			},
-		],
-	},
+	customFieldsProperty('customFields', show),
 ];
 
 // An empty object would be sent as no body at all, which Docspell answers with a 500,
@@ -141,14 +147,14 @@ interface DocspellTag {
 	name: string;
 }
 
-const ENDPOINT_OF = {
+export const ENDPOINT_OF = {
 	concEquipment: 'concEquipment',
 	concPerson: 'concPerson',
 	corrOrg: 'corrOrg',
 	corrPerson: 'corrPerson',
 } as const;
 
-const LABEL_OF: Record<string, string> = {
+export const LABEL_OF: Record<string, string> = {
 	concEquipment: 'concerning equipment',
 	concPerson: 'concerning person',
 	corrOrg: 'correspondent organization',
@@ -179,24 +185,8 @@ export async function executeItemUpdate(
 	if ('tags' in fields && hasMissingTag(fields.tags)) {
 		throw fail('The tags value is empty (null or undefined). Leave the field empty to remove all tags.');
 	}
-	const dateBody = (label: string, value: unknown): IDataObject => {
-		if (value === '' || value === undefined || value === null) return { date: null };
-		const text = String(value);
-		const time = new Date(text).getTime();
-		if (Number.isNaN(time)) throw fail(`${label} "${text}" is not a valid date`);
-		// Date rolls a day that does not exist (February 30) over into the next month.
-		const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(text.trim());
-		if (day) {
-			const [year, month, date] = day.slice(1).map(Number);
-			const check = new Date(Date.UTC(year, month - 1, date));
-			if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== date) {
-				throw fail(`${label} "${text}" is not a valid date`);
-			}
-		}
-		return { date: time };
-	};
-	const itemDate = 'itemDate' in fields ? dateBody('Item Date', fields.itemDate) : undefined;
-	const dueDate = 'dueDate' in fields ? dateBody('Due Date', fields.dueDate) : undefined;
+	const itemDate = 'itemDate' in fields ? dateBody('Item Date', fields.itemDate, fail) : undefined;
+	const dueDate = 'dueDate' in fields ? dateBody('Due Date', fields.dueDate, fail) : undefined;
 
 	const applied: string[] = [];
 	const put = async (label: string, method: 'PUT' | 'POST', endpoint: string, body: IDataObject) => {
@@ -207,21 +197,6 @@ export async function executeItemUpdate(
 			throw fail(`Could not update the ${label}: ${reason}${done}`);
 		}
 		applied.push(label);
-	};
-
-	// An error after the first change still has to say what was already changed.
-	const withApplied = (error: unknown): never => {
-		if (applied.length === 0) throw error;
-		const note = `already applied: ${applied.join(', ')}`;
-		if (error instanceof NodeApiError || error instanceof NodeOperationError) {
-			if (!`${error.message} ${error.description ?? ''}`.includes('already applied')) {
-				// Continue On Fail outputs only the message; the UI shows the description.
-				error.message = `${error.message} (${note})`;
-				error.description = error.description ? `${error.description} (${note})` : note;
-			}
-			throw error;
-		}
-		throw fail(`${error instanceof Error ? error.message : String(error)} (${note})`);
 	};
 
 	const steps: Step[] = [];
@@ -283,7 +258,7 @@ export async function executeItemUpdate(
 		for (const step of steps) await step.run();
 		item = await docspellApiRequest(context, { method: 'GET', endpoint: itemPath }, { 404: `Item "${itemId}" was not found` });
 	} catch (error) {
-		return withApplied(error);
+		return rethrowWithApplied(applied, error, fail);
 	}
 	return context.helpers.constructExecutionMetaData(context.helpers.returnJsonArray(item), {
 		itemData: { item: itemIndex },
