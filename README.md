@@ -37,7 +37,7 @@ Use the URL of your Docspell instance, your full account name (`collective/usern
 
 ## Compatibility
 
-Last tested with n8n 2.45.5 and Docspell 0.43.0.
+Last tested with n8n 2.45.6 and Docspell 0.43.0.
 
 ## Versioning
 
