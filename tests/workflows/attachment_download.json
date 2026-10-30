@@ -1,0 +1,114 @@
+{
+  "id": "10",
+  "name": "Docspell Attachment Download",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "search",
+        "query": "name:latin1-sample.txt",
+        "returnAll": true,
+        "options": {
+          "withDetails": true
+        }
+      },
+      "id": "s",
+      "name": "Find the item",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        320,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "attachment",
+        "operation": "download",
+        "attachmentId": "={{ $json.attachments[0].id }}",
+        "binaryPropertyName": "file"
+      },
+      "id": "d",
+      "name": "Download the attachment",
+      "type": "n8n-nodes-docspell.docspell",
+      "typeVersion": 1,
+      "position": [
+        540,
+        100
+      ],
+      "credentials": {
+        "docspellApi": {
+          "id": "docspell-cred-id"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length !== 1) throw new Error('Expected one downloaded attachment, got ' + items.length);\nconst expected = [0x4d, 0xfc, 0x6c, 0x6c, 0x65, 0x72, 0x20, 0xe4, 0xf6, 0xff, 0x0a];\nconst bytes = [...(await this.helpers.getBinaryDataBuffer(0, 'file'))];\nconst problems = [];\nif (JSON.stringify(bytes) !== JSON.stringify(expected)) problems.push('bytes=' + JSON.stringify(bytes));\nif (items[0].json.fileName !== 'latin1-sample.txt') problems.push('fileName=' + items[0].json.fileName);\nif (items[0].binary.file.fileName !== 'latin1-sample.txt') problems.push('binary fileName=' + items[0].binary.file.fileName);\nif (problems.length) throw new Error('Download was not faithful: ' + problems.join('; '));\nreturn [{ json: { verified: 'attachment downloaded', size: bytes.length } }];"
+      },
+      "id": "a",
+      "name": "Assert bytes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Find the item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find the item": {
+      "main": [
+        [
+          {
+            "node": "Download the attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download the attachment": {
+      "main": [
+        [
+          {
+            "node": "Assert bytes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -6,6 +6,8 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
+import { attachmentDescription } from './resources/attachment';
+import { executeAttachmentDownload } from './resources/attachment/download';
 import { itemDescription } from './resources/item';
 import { executeItemGet } from './resources/item/get';
 import { executeItemSearch } from './resources/item/search';
@@ -39,9 +41,13 @@ export class Docspell implements INodeType {
 				name: 'resource',
 				type: 'options',
 				noDataExpression: true,
-				options: [{ name: 'Item', value: 'item' }],
+				options: [
+					{ name: 'Attachment', value: 'attachment' },
+					{ name: 'Item', value: 'item' },
+				],
 				default: 'item',
 			},
+			...attachmentDescription,
 			...itemDescription,
 		],
 	};
@@ -63,6 +69,8 @@ export class Docspell implements INodeType {
 					returnData.push(...(await executeItemUpdate(this, itemIndex)));
 				} else if (resource === 'item' && operation === 'upload') {
 					returnData.push(...(await executeItemUpload(this, itemIndex)));
+				} else if (resource === 'attachment' && operation === 'download') {
+					returnData.push(...(await executeAttachmentDownload(this, itemIndex)));
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unsupported operation: ${resource}/${operation}`, { itemIndex });
 				}

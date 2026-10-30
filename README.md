@@ -25,6 +25,10 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 - **Upload**: upload files from the incoming binary data, either one file per input item or several at once (comma-separated binary field names). Docspell turns them into items after processing, so the result lists the uploaded file names rather than item IDs; use Search to find the items afterwards. Options: direction, folder, tags, language, one item for all files, skip duplicates, flatten archives, file filter and attachments only. A folder or tag that does not exist is an error instead of being ignored.
 - **Search**: find items with Docspell's [query language](https://docspell.org/docs/query/). Returns one n8n item per Docspell item. Supports *Return All*, a limit, an offset, searching the trash, and *Include Details* to also resolve tags and attachments.
 
+**Attachment**
+
+- **Download**: download the file of an attachment as binary data, ready for other nodes (save it, send it, attach it). Take the attachment ID from the `attachments` of Item > Get or of a Search with details. Choose the version: the file as Docspell shows it (the converted PDF where there is one), the original upload, the archive, or the preview image. The file is kept byte for byte. It is read into memory as a whole, so very large files need that much memory in n8n.
+
 More operations are planned.
 
 ## Credentials
