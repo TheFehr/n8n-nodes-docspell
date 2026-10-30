@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { docspellApiRequest, resolveTags, splitList } from '../../../Common/GenericFunctions';
+import { docspellApiRequest, hasMissingTag, resolveTags, splitList, tagTokens } from '../../../Common/GenericFunctions';
 
 const show = { resource: ['item'], operation: ['upload'] };
 
@@ -57,11 +57,12 @@ export const itemUploadDescription: INodeProperties[] = [
 				description: 'Whether to treat every ZIP file as a container of independent files, each becoming its own item',
 			},
 			{
-				displayName: 'Folder',
+				displayName: 'Folder Name or ID',
 				name: 'folder',
-				type: 'string',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getFolders' },
 				default: '',
-				description: 'Name or ID of an existing folder to put the new items into',
+				description: 'The new items go into this folder. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Language',
@@ -86,11 +87,12 @@ export const itemUploadDescription: INodeProperties[] = [
 				description: 'Whether to skip a file that Docspell already has, found by its checksum',
 			},
 			{
-				displayName: 'Tags',
+				displayName: 'Tag Names or IDs',
 				name: 'tags',
-				type: 'string',
-				default: '',
-				description: 'Comma-separated names or IDs of existing tags. A tag that does not exist is an error.',
+				type: 'multiOptions',
+				typeOptions: { loadOptionsMethod: 'getTags' },
+				default: [],
+				description: 'A tag that does not exist is an error. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 		],
 	},
@@ -145,7 +147,10 @@ export async function executeItemUpload(
 		meta.folder = found.id;
 	}
 
-	const wantedTags = splitList(String(options.tags ?? ''));
+	if ('tags' in options && hasMissingTag(options.tags)) {
+		throw fail('The tags value is empty (null or undefined). Leave the field empty for no tags.');
+	}
+	const wantedTags = tagTokens(options.tags);
 	if (wantedTags.length > 0) {
 		const { names, unknown } = await resolveTags(context, wantedTags);
 		if (unknown.length > 0) {

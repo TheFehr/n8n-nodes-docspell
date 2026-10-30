@@ -1,4 +1,11 @@
-import type { IDataObject, IExecuteFunctions, IHttpRequestMethods, IHttpRequestOptions, JsonObject } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IExecuteFunctions,
+	IHttpRequestMethods,
+	IHttpRequestOptions,
+	ILoadOptionsFunctions,
+	JsonObject,
+} from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
 interface DocspellRequest {
@@ -12,7 +19,7 @@ interface DocspellRequest {
 export type StatusMessages = Partial<Record<number, string>>;
 
 export async function docspellApiRequest(
-	context: IExecuteFunctions,
+	context: IExecuteFunctions | ILoadOptionsFunctions,
 	{ method, endpoint, body, qs }: DocspellRequest,
 	statusMessages: StatusMessages = {},
 ): Promise<IDataObject> {
@@ -72,6 +79,19 @@ export function splitList(text: string): string[] {
 		.split(',')
 		.map((token) => token.trim())
 		.filter((token) => token !== '');
+}
+
+// The tags field holds a list since it became a picker, but a workflow saved before that, or
+// an expression, still gives "a, b". Every entry is split again, so both read the same.
+export function tagTokens(value: unknown): string[] {
+	const entries = Array.isArray(value) ? value : [value];
+	return entries.flatMap((entry) => splitList(entry === undefined || entry === null ? '' : String(entry)));
+}
+
+// An expression that resolves to nothing is not "no tags": read as an empty list it would make
+// Replace remove every tag. Only [] and '' mean none.
+export function hasMissingTag(value: unknown): boolean {
+	return (Array.isArray(value) ? value : [value]).some((entry) => entry === undefined || entry === null);
 }
 
 export interface DownloadedFile {
