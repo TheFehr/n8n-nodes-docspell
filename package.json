@@ -53,7 +53,7 @@
     "n8n-workflow": "*"
   },
   "docspellVersion": "0.43.0",
-  "n8nWorkflowVersion": "2.45.3",
+  "n8nWorkflowVersion": "2.45.4",
   "n8nNodeTooling": {
     "upstream": {
       "name": "Docspell",
