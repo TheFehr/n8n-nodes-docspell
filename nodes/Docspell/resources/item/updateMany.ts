@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeProperties } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { dateBody, docspellApiRequest, hasMissingTag, resolveTags, rethrowWithApplied, tagTokens } from '../../../Common/GenericFunctions';
+import { dateBody, docspellApiRequest, hasMissingTag, resolveRemovedCustomFields, resolveTags, rethrowWithApplied, tagTokens } from '../../../Common/GenericFunctions';
 import { customFieldsProperty, ENDPOINT_OF, LABEL_OF, removeCustomFieldsProperty, updateFieldOptions } from './update';
 
 const show = { resource: ['item'], operation: ['updateMany'] };
@@ -57,8 +57,8 @@ export async function executeItemUpdateMany(
 	const customFields = (
 		(context.getNodeParameter('bulkCustomFields', itemIndex, {}) as { values?: Array<{ field: string; value: string }> }).values ?? []
 	).filter((entry) => entry.field.trim() !== '');
-	const removeCustomFields = tagTokens(context.getNodeParameter('removeCustomFields', itemIndex, []));
-	if (Object.keys(fields).length === 0 && customFields.length === 0 && removeCustomFields.length === 0) {
+	const removeTokens = tagTokens(context.getNodeParameter('removeCustomFields', itemIndex, []));
+	if (Object.keys(fields).length === 0 && customFields.length === 0 && removeTokens.length === 0) {
 		throw fail('Choose at least one field to update');
 	}
 
@@ -69,6 +69,10 @@ export async function executeItemUpdateMany(
 	}
 	const itemDate = 'itemDate' in fields ? dateBody('Item Date', fields.itemDate, fail) : undefined;
 	const dueDate = 'dueDate' in fields ? dateBody('Due Date', fields.dueDate, fail) : undefined;
+
+	const removeCustomFields = (
+		await resolveRemovedCustomFields(context, removeTokens, customFields.map((entry) => entry.field.trim()), fail)
+	).map((field) => field.name);
 
 	// Docspell answers an ID it does not know with success and changes nothing, so a typo would
 	// go unnoticed. Looking every item up first also gives the tags each one has now.

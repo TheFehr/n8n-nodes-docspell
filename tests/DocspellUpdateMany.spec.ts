@@ -126,6 +126,13 @@ describe('Item > Update Many against a real Docspell', () => {
 		expect((await getItem(first)).tags).toEqual([]);
 	});
 
+	it('removes a custom field that is given by its ID', async () => {
+		const field = (await docspell('GET', '/sec/customfield')).items.find((entry: { name: string }) => entry.name === SEED_CUSTOM_FIELD);
+		await docspell('PUT', '/sec/items/customfield', { items: [first, second], field: { field: SEED_CUSTOM_FIELD, value: 'x' } });
+		await updateMany([first, second], {}, { removeCustomFields: [field.id] });
+		for (const id of [first, second]) expect((await getItem(id)).customfields).toEqual([]);
+	});
+
 	it('sets and removes a custom field on all items', async () => {
 		await updateMany([first, second], {}, { bulkCustomFields: { values: [{ field: SEED_CUSTOM_FIELD, value: 'bulk value' }] } });
 		for (const id of [first, second]) {
@@ -159,6 +166,25 @@ describe('Item > Update Many against a real Docspell', () => {
 			});
 			await expect(node.execute!.call(context)).rejects.toThrow('No item IDs were given');
 			expect(requests).toHaveLength(0);
+		});
+
+		it.each([
+			['name', 'id'],
+			['id', 'name'],
+		])('when a custom field is set by %s and removed by %s', async (setBy, removeBy) => {
+			const field = (await docspell('GET', '/sec/customfield')).items.find((entry: { name: string }) => entry.name === SEED_CUSTOM_FIELD);
+			const pick = (how: string) => (how === 'id' ? field.id : field.name);
+			await expect(
+				updateMany([first, second], { name: 'never.txt' }, { bulkCustomFields: { values: [{ field: pick(setBy), value: 'x' }] }, removeCustomFields: [pick(removeBy)] }),
+			).rejects.toThrow('both set and removed');
+			await untouched();
+		});
+
+		it('when a custom field to remove does not exist', async () => {
+			await expect(updateMany([first, second], { name: 'never.txt' }, { removeCustomFields: ['no-such-field'] })).rejects.toThrow(
+				'Custom field not found in Docspell: "no-such-field"',
+			);
+			await untouched();
 		});
 
 		it('when no field is chosen', async () => {

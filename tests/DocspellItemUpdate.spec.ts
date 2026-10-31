@@ -256,6 +256,20 @@ describe('Item > Update against a real Docspell', () => {
 				).rejects.toThrow('both set and removed');
 			});
 
+			it.each([
+				['set by ID, removed by name', 'id', 'name'],
+				['set by name, removed by ID', 'name', 'id'],
+			])('refuses a field that is %s', async (_, setBy, removeBy) => {
+				const id = await itemIdByName(UPDATE_TARGET);
+				const field = (await docspell('GET', '/sec/customfield')).items.find((entry: { name: string }) => entry.name === SEED_CUSTOM_FIELD);
+				const pick = (how: string) => (how === 'id' ? field.id : field.name);
+
+				await expect(
+					update(id, { name: 'never.txt' }, { customFields: { values: [{ field: pick(setBy), value: 'x' }] }, removeCustomFields: [pick(removeBy)] }),
+				).rejects.toThrow('both set and removed');
+				expect((await getItem(id)).name).toBe(UPDATE_TARGET);
+			});
+
 			it('counts as a change on its own', async () => {
 				const id = await itemIdByName(UPDATE_TARGET);
 				await expect(update(id, {}, { removeCustomFields: [] })).rejects.toThrow('Choose at least one field to update');
