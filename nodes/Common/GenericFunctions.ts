@@ -50,7 +50,7 @@ export async function docspellApiRequest(
 	}
 }
 
-interface Named {
+export interface Named {
 	id: string;
 	name: string;
 }
@@ -163,4 +163,29 @@ export function rethrowWithApplied(applied: string[], error: unknown, fail: (mes
 		throw error;
 	}
 	throw fail(`${error instanceof Error ? error.message : String(error)} (${note})`);
+}
+
+// Docspell names a custom field in some places and gives its ID in others, and takes either
+// when a value is set. The fields to remove are resolved to their definitions so that "set by
+// ID, removed by name" is seen as the same field, and so that an unknown one is named.
+export async function resolveRemovedCustomFields(
+	context: IExecuteFunctions,
+	remove: string[],
+	set: string[],
+	fail: (message: string) => Error,
+): Promise<Named[]> {
+	if (remove.length === 0) return [];
+	const known = ((await docspellApiRequest(context, { method: 'GET', endpoint: '/sec/customfield' })) as { items: Named[] }).items;
+	const find = (token: string) => known.find((field) => field.name === token || field.id === token);
+
+	const unknown = remove.filter((token) => find(token) === undefined);
+	if (unknown.length > 0) {
+		throw fail(`Custom field${unknown.length > 1 ? 's' : ''} not found in Docspell: ${unknown.map((name) => `"${name}"`).join(', ')}`);
+	}
+	const fields = [...new Map(remove.map((token) => find(token)!).map((field) => [field.id, field])).values()];
+
+	const setIds = new Set(set.map((token) => find(token)?.id ?? token));
+	const both = fields.filter((field) => setIds.has(field.id));
+	if (both.length > 0) throw fail(`Custom field ${both.map((field) => `"${field.name}"`).join(', ')} is both set and removed`);
+	return fields;
 }
