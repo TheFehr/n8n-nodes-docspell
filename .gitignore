@@ -27,3 +27,5 @@ organization_output.txt
 organization_not_found_output.txt
 update_many_output.txt
 update_many_not_found_output.txt
+.claude/worktrees/
+.claude/settings.local.json
