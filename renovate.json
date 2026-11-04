@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "security:minimumReleaseAgeNpm"],
+  "ignorePaths": ["docker-compose.test.yml"],
+  "platformAutomerge": true,
+  "vulnerabilityAlerts": {
+    "automerge": false
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
