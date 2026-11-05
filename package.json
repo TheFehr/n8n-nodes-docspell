@@ -68,22 +68,10 @@
       "majorOffset": 0
     },
     "readme": "Last tested with n8n {n8n} and Docspell {upstream}.",
-    "pins": [
-      {
-        "file": "docker-compose.test.yml",
-        "template": "image: ghcr.io/docspell/restserver:v{version}",
-        "from": "upstream"
-      },
-      {
-        "file": "docker-compose.test.yml",
-        "template": "image: ghcr.io/docspell/joex:v{version}",
-        "from": "upstream"
-      },
-      {
-        "file": "docker-compose.test.yml",
-        "template": "image: n8nio/n8n:{version}",
-        "from": "n8n"
-      }
-    ]
+    "pins": {
+      "restserver-image": { "file": "docker-compose.test.yml", "template": "image: ghcr.io/docspell/restserver:v{version}", "from": "upstream" },
+      "joex-image": { "file": "docker-compose.test.yml", "template": "image: ghcr.io/docspell/joex:v{version}", "from": "upstream" },
+      "n8n-image": { "file": "docker-compose.test.yml", "template": "image: n8nio/n8n:{version}", "from": "n8n" }
+    }
   }
 }
