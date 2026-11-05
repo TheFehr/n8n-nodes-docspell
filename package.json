@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-docspell",
-  "version": "0.43.2",
+  "version": "0.43.3",
   "description": "Interact with your Docspell instance",
   "keywords": [
     "n8n-community-node-package"
