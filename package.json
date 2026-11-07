@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-docspell",
-  "version": "0.43.3",
+  "version": "0.43.4",
   "description": "Interact with your Docspell instance",
   "keywords": [
     "n8n-community-node-package"
@@ -69,9 +69,21 @@
     },
     "readme": "Last tested with n8n {n8n} and Docspell {upstream}.",
     "pins": {
-      "restserver-image": { "file": "docker-compose.test.yml", "template": "image: ghcr.io/docspell/restserver:v{version}", "from": "upstream" },
-      "joex-image": { "file": "docker-compose.test.yml", "template": "image: ghcr.io/docspell/joex:v{version}", "from": "upstream" },
-      "n8n-image": { "file": "docker-compose.test.yml", "template": "image: n8nio/n8n:{version}", "from": "n8n" }
+      "restserver-image": {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/restserver:v{version}",
+        "from": "upstream"
+      },
+      "joex-image": {
+        "file": "docker-compose.test.yml",
+        "template": "image: ghcr.io/docspell/joex:v{version}",
+        "from": "upstream"
+      },
+      "n8n-image": {
+        "file": "docker-compose.test.yml",
+        "template": "image: n8nio/n8n:{version}",
+        "from": "n8n"
+      }
     }
   }
 }
