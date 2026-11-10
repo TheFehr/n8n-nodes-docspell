@@ -44,7 +44,7 @@ Use the URL of your Docspell instance, your full account name (`collective/usern
 ## Compatibility
 
 <!-- n8n-node-tooling:compatibility -->
-Last tested with n8n 2.46.6 and Docspell 0.43.0.
+Last tested with n8n 2.46.7 and Docspell 0.43.0.
 <!-- /n8n-node-tooling:compatibility -->
 
 ## Versioning
