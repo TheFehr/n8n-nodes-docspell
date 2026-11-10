@@ -8,10 +8,7 @@
       "name": "When clicking ‘Test workflow’",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        100,
-        100
-      ]
+      "position": [100, 100]
     },
     {
       "parameters": {
@@ -27,10 +24,7 @@
       "name": "Find the item",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        320,
-        100
-      ],
+      "position": [320, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -48,10 +42,7 @@
       "name": "Download the attachment",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        540,
-        100
-      ],
+      "position": [540, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -66,10 +57,7 @@
       "name": "Assert bytes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        760,
-        100
-      ]
+      "position": [760, 100]
     }
   ],
   "connections": {

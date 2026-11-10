@@ -8,10 +8,7 @@
       "name": "When clicking ‘Test workflow’",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        100,
-        100
-      ]
+      "position": [100, 100]
     },
     {
       "parameters": {
@@ -24,10 +21,7 @@
       "name": "Search invoices",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        320,
-        100
-      ],
+      "position": [320, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -42,10 +36,7 @@
       "name": "Assert invoices",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        540,
-        100
-      ]
+      "position": [540, 100]
     },
     {
       "parameters": {
@@ -61,10 +52,7 @@
       "name": "Search contract with details",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        320,
-        300
-      ],
+      "position": [320, 300],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -79,10 +67,7 @@
       "name": "Assert contract",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        540,
-        300
-      ]
+      "position": [540, 300]
     }
   ],
   "connections": {

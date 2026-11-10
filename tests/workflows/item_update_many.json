@@ -8,10 +8,7 @@
       "name": "When clicking ‘Test workflow’",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        100,
-        100
-      ]
+      "position": [100, 100]
     },
     {
       "parameters": {
@@ -24,10 +21,7 @@
       "name": "Find the scratch items",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        320,
-        100
-      ],
+      "position": [320, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -42,10 +36,7 @@
       "name": "Collect the IDs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        540,
-        100
-      ]
+      "position": [540, 100]
     },
     {
       "parameters": {
@@ -55,9 +46,7 @@
         "bulkFields": {
           "direction": "outgoing",
           "folder": "e2e-folder",
-          "tags": [
-            "e2e-invoice"
-          ],
+          "tags": ["e2e-invoice"],
           "tagsMode": "add"
         }
       },
@@ -65,10 +54,7 @@
       "name": "Update both",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        760,
-        100
-      ],
+      "position": [760, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -83,10 +69,7 @@
       "name": "Assert changed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        980,
-        100
-      ]
+      "position": [980, 100]
     },
     {
       "parameters": {
@@ -103,10 +86,7 @@
       "name": "Put both back",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        1200,
-        100
-      ],
+      "position": [1200, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -121,10 +101,7 @@
       "name": "Assert restored",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1420,
-        100
-      ]
+      "position": [1420, 100]
     }
   ],
   "connections": {

@@ -8,10 +8,7 @@
       "name": "When clicking ‘Test workflow’",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        100,
-        100
-      ]
+      "position": [100, 100]
     },
     {
       "parameters": {
@@ -21,10 +18,7 @@
       "name": "Make file",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        320,
-        100
-      ]
+      "position": [320, 100]
     },
     {
       "parameters": {
@@ -41,10 +35,7 @@
       "name": "Upload the file",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        540,
-        100
-      ],
+      "position": [540, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-upload-id"
@@ -59,10 +50,7 @@
       "name": "Assert accepted",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        760,
-        100
-      ]
+      "position": [760, 100]
     },
     {
       "parameters": {
@@ -74,10 +62,7 @@
       "name": "Wait for processing",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [
-        980,
-        100
-      ],
+      "position": [980, 100],
       "webhookId": "7f1f2a52-6a0b-4f4b-9d4e-0d6a4c3d9e10"
     },
     {
@@ -94,10 +79,7 @@
       "name": "Find the item",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        1200,
-        100
-      ],
+      "position": [1200, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-upload-id"
@@ -112,10 +94,7 @@
       "name": "Assert item",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1420,
-        100
-      ]
+      "position": [1420, 100]
     }
   ],
   "connections": {
