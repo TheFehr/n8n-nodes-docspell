@@ -13,5 +13,4 @@ jobs:
   ci:
     uses: TheFehr/n8n-node-tooling/.github/workflows/ci.yml@649486a40d95084cbbc8b2fec98fa28b66c94ed2 # v1.1.0
     with:
-      extra-lint-script: lint:oxlint
       integration: true
