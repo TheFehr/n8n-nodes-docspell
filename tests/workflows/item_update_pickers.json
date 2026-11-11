@@ -8,10 +8,7 @@
       "name": "When clicking ‘Test workflow’",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        100,
-        100
-      ]
+      "position": [100, 100]
     },
     {
       "parameters": {
@@ -27,10 +24,7 @@
       "name": "Find the tag source",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        320,
-        100
-      ],
+      "position": [320, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -48,10 +42,7 @@
       "name": "Find target",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        540,
-        100
-      ],
+      "position": [540, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -73,10 +64,7 @@
       "name": "Update with picker values",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        760,
-        100
-      ],
+      "position": [760, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -91,10 +79,7 @@
       "name": "Assert picked",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        980,
-        100
-      ]
+      "position": [980, 100]
     },
     {
       "parameters": {
@@ -111,10 +96,7 @@
       "name": "Clear with empty pickers",
       "type": "n8n-nodes-docspell.docspell",
       "typeVersion": 1,
-      "position": [
-        1200,
-        100
-      ],
+      "position": [1200, 100],
       "credentials": {
         "docspellApi": {
           "id": "docspell-cred-id"
@@ -129,10 +111,7 @@
       "name": "Assert cleared",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1420,
-        100
-      ]
+      "position": [1420, 100]
     }
   ],
   "connections": {

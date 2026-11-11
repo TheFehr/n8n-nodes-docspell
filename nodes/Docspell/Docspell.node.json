@@ -1,20 +1,18 @@
 {
-    "node": "n8n-nodes-base.Docspell",
-    "nodeVersion": "1.0",
-    "codexVersion": "1.0",
-    "categories": [
-        "Miscellaneous"
+  "node": "n8n-nodes-base.Docspell",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["Miscellaneous"],
+  "resources": {
+    "credentialDocumentation": [
+      {
+        "url": "https://docspell.org/docs/api/intro/#authentication"
+      }
     ],
-    "resources": {
-        "credentialDocumentation": [
-            {
-                "url": "https://docspell.org/docs/api/intro/#authentication"
-            }
-        ],
-        "primaryDocumentation": [
-            {
-                "url": "https://docspell.org/docs/api/intro/"
-            }
-        ]
-    }
+    "primaryDocumentation": [
+      {
+        "url": "https://docspell.org/docs/api/intro/"
+      }
+    ]
+  }
 }
